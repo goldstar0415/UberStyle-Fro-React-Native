@@ -1,0 +1,60 @@
+{
+  "name": "Fro",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node node_modules/react-native/local-cli/cli.js start",
+    "test": "jest"
+  },
+  "dependencies": {
+    "babel-preset-expo": "^2.0.0",
+    "get-substring-by-range": "^1.0.0",
+    "radio-button-react-native": "^1.1.6",
+    "react": "15.4.2",
+    "react-native": "0.42.0",
+    "react-native-button": "^1.8.2",
+    "react-native-calendar": "^0.11.0",
+    "react-native-calendar-picker": "git+https://github.com/stephy/CalendarPicker.git",
+    "react-native-check-box": "^1.0.4",
+    "react-native-datepicker": "^1.4.4",
+    "react-native-geocoder": "^0.4.6",
+    "react-native-google-places-autocomplete": "^1.2.11",
+    "react-native-icon-badge": "^1.1.1",
+    "react-native-image-crop-picker": "^0.12.9",
+    "react-native-keyboard-spacer": "^0.3.1",
+    "react-native-maps": "^0.13.0",
+    "react-native-material-switch": "recr0ns/react-native-material-switch#853e22d5a60d9a69bb0437f3ebe5d501ff7f9de0",
+    "react-native-modalbox": "^1.3.9",
+    "react-native-percentage-circle": "^1.0.6",
+    "react-native-photo-view": "^1.2.0",
+    "react-native-popup-menu": "^0.7.3",
+    "react-native-router-flux": "3.38.0",
+    "react-native-share": "^1.0.20",
+    "react-native-smart-splash-screen": "^2.3.3",
+    "react-native-swiper": "^1.5.4",
+    "react-native-tab-view": "0.0.57",
+    "react-native-vector-icons": "^4.0.0",
+    "react-native-view-more-text": "^1.1.2",
+    "react-redux": "^4.4.6",
+    "redux": "^3.6.0",
+    "redux-logger": "^3.0.1",
+    "redux-thunk": "^2.2.0",
+    "rn-round-checkbox": "^0.3.0",
+    "uuid": "^3.0.1"
+  },
+  "devDependencies": {
+    "axios": "^0.16.1",
+    "babel-jest": "19.0.0",
+    "babel-preset-react-native": "1.9.1",
+    "jest": "19.0.2",
+    "react-test-renderer": "15.4.2"
+  },
+  "jest": {
+    "preset": "react-native"
+  },
+  "rnpm": {
+    "assets": [
+      "./app/components/font"
+    ]
+  }
+}

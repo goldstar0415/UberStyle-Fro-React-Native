@@ -1,0 +1,28 @@
+//= =====================
+// Auth Actions
+//= =====================
+export const AUTH_USER = 'auth_user',
+  UNAUTH_USER = 'unauth_user',
+  AUTH_ERROR = 'auth_error',
+  FORGOT_PASSWORD_REQUEST = 'forgot_password_request',
+  RESET_PASSWORD_REQUEST = 'reset_password_request',
+  PROTECTED_TEST = 'protected_test',
+  LOGIN_REQUEST = 'login_request',
+  LOGIN_SUCCESS = 'login_success',
+  LOGIN_FAILURE = 'login_failure',
+  REGISTER_REQUEST = 'register_request',
+  REGISTER_SUCCESS = 'register_success',
+  REGISTER_FAILURE = 'register_failure',
+  API_REQUEST = 'api_request',
+  API_FAILURE = 'api_failure',
+  GET_USER = 'get_user',
+  EDIT_USER_NAME = 'edit_user_name',
+  EDIT_USER_PHONENUMBER = 'edit_user_phonenumber',
+  EDIT_USER_GENDER = 'edit_user_gender',
+  EDIT_USER_SCHOOL = 'edit_user_school',
+  EDIT_USER_WORK = 'edit_user_work',
+  EDIT_USER_BIRTHDAY = 'edit_user_birthday',
+  EDIT_USER_EMAIL = 'edit_user_email',
+  EDIT_USER_LOCATION = 'edit_user_location',
+  EDIT_USER_LANGUAGE = 'edit_user_language',
+  EDIT_USER_DESCRIPTION = 'edit_user_description';
