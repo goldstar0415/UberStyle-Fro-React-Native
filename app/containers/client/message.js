@@ -139,9 +139,9 @@ class Message extends React.Component {
     }
     renderSubCategory (rowData: string , sectionID: number, rowID: number) {
       return (
-        <TouchableHighlight  onPress={() => this.setState({open: false, hairstyle: rowData, btn_flag: 1})} underlayColor='#f26c4f'>
+        <TouchableHighlight  onPress={() => this.setState({open: false, hairstyle: rowData.value, btn_flag: 1})} underlayColor='#f26c4f'>
           <View style={styles.sub_category_view}>
-            <Text style={{fontFamily: 'Montserrat', fontSize: 14, alignSelf: 'center'}}>{rowData}</Text>
+            <Text style={{fontFamily: 'Montserrat', fontSize: 14, alignSelf: 'center'}}>{rowData.value}</Text>
           </View>
         </TouchableHighlight>
       )

@@ -33,6 +33,7 @@ import MapView from 'react-native-maps';
 import ViewMoreText from 'react-native-view-more-text';
 
 import Share, {ShareSheet, Button} from 'react-native-share';
+import stars from '../../components/stars';
 
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -113,11 +114,17 @@ class stylistProfile extends React.Component {
           business_hours: (api.provider.availability) ? api.provider.availability: {},
           providerType: (api.provider.providerType) ? api.provider.providerType : "",
           initialRegion: {
-              latitude: (api.provider.location && api.provider.location.address && api.provider.location.address.geoLocation.coordinates[1]) ? api.provider.location.address.geoLocation.coordinates[1] : 0,
-              longitude: (api.provider.location && api.provider.location.address && api.provider.location.address.geoLocation.coordinates[1]) ? api.provider.location.address.geoLocation.coordinates[0] : 0,
-              latitudeDelta: LATITUDE_DELTA,
-              longitudeDelta: LONGITUDE_DELTA
-            },
+            latitude: (api.provider.location && api.provider.location.address && api.provider.location.address.geoLocation.coordinates[1]) ? api.provider.location.address.geoLocation.coordinates[1] : 0,
+            longitude: (api.provider.location && api.provider.location.address && api.provider.location.address.geoLocation.coordinates[1]) ? api.provider.location.address.geoLocation.coordinates[0] : 0,
+            latitudeDelta: LATITUDE_DELTA,
+            longitudeDelta: LONGITUDE_DELTA
+          },
+          overall: (api.provider.overall) ? api.provider.overall: null,
+          clean: (api.provider.clean) ? api.provider.clean: null,
+          communication: (api.provider.communication) ? api.provider.communication: null,
+          punctuality: (api.provider.punctuality) ? api.provider.punctuality: null,
+          service: (api.provider.service) ? api.provider.service: null,
+          reviews: (api.provider.reviews) ? api.provider.reviews: 0
         });
       });
     }
@@ -246,14 +253,14 @@ class stylistProfile extends React.Component {
     }
 
     _gotoMessage() {
-      console.log(this.props.data)
-      console.log(this.props.api.provider._id)
-      if (this.props.data != this.props.api.provider._id) {
+      // console.log(this.props.data)
+      // console.log(this.props.api.provider._id)
+      // if (this.props.data != this.props.api.provider._id) {
         NavigationActions.message();
-      }
+      // }
     }
 
-    _updateState(index) {
+    _updateParentState(index) {
       var tmp = this.state.services
       tmp[index].expand = !tmp[index].expand
       this.setState({
@@ -333,79 +340,85 @@ class stylistProfile extends React.Component {
                 </View>
               ):(
                 this.state.services.map((service, i) =>
+                <View key={service.id}>
                   <View style={{flexDirection:'row', height: 40, borderBottomWidth: 0.2}}>
                     <Text style={{fontFamily: 'Montserrat', fontSize: 14, alignSelf: 'center', width: Dimensions.get('window').width, textAlign: 'center'}}>
                       {service.name}
                     </Text>
-                    <TouchableOpacity  style={{position: "absolute", right: 30, alignSelf: 'center'}}  onPress={() => {()=>this._updateState(i)}}>
+                    <TouchableOpacity  style={{position: "absolute", right: 30, alignSelf: 'center'}}  onPress={() => this._updateParentState(i)}>
                       <Image source={service.expand ? require('../../img/down_aroow.png') : require('../../img/up_arrow.png')} style={{width: 12, height: 8}}/>
                     </TouchableOpacity>
                   </View>
                   {
-
-                  }
-                  {/*service.expand ? (
-                        service.child.map((child, j)=>
-                          <View key={child.serviceId}>
-                            <View style={{flexDirection:'row', width:Dimensions.get('window').width-40, alignSelf: 'center', height: 80}}>
-                              <View style={{flexDirection:'column', alignSelf: 'center', width:Dimensions.get('window').width}}>
-                                <Text style={{fontFamily: 'Montserrat', fontSize: 13}}>{child.name}</Text>
-                                <View style={styles.info_view}>
-                                  <Text style={styles.info_text}>${child.price} and up for {(child.duration+1)*15} minutes</Text>
-                                  {
-                                    (child.description)?(
-                                      <TouchableOpacity  onPress={() => {this._updateInfo(i,j)}}>
-                                        <Image source={require('../../img/info.png')} style={styles.info_img}/>
-                                      </TouchableOpacity>
-                                    ):null
-                                  }
-                                </View>
+                    service.expand ? (
+                      service.child.map((child, j) =>
+                        <View key = {child.serviceId}>
+                          <View style={{flexDirection:'row', width:Dimensions.get('window').width-40, alignSelf: 'center', height: 80}}>
+                            <View style={{flexDirection:'column', alignSelf: 'center', width:Dimensions.get('window').width}}>
+                              <Text style={{fontFamily: 'Montserrat', fontSize: 13}}>{child.name}</Text>
+                              <View style={styles.info_view}>
+                                <Text style={styles.info_text}>${child.price} and up for {(child.duration+1)*15} minutes</Text>
+                                {
+                                  (child.description)?(
+                                    <TouchableOpacity  onPress={() => this._updateInfo(i,j)}>
+                                      <Image source={require('../../img/info.png')} style={styles.info_img}/>
+                                    </TouchableOpacity>
+                                  ):null
+                                }
                               </View>
-                              <TouchableOpacity style={styles.book_touch}  onPress={()=>this._gotoFristStep(child)}>
-                                <View style={styles.book_view}>
-                                  <Text style={styles.book_text}>Book</Text>
-                                </View>
-                              </TouchableOpacity>
-                              {
-                                service.child_status[j] ? (
-                                  <View style={styles.expand_view}>
-                                    <Text style={styles.expand_text}>{service.description}</Text>
-                                  </View>
-                                ) : null
-                              }
-                              <View style={this.state.balayage_info ? styles.expand_line : styles.expand_line_empty}/>
                             </View>
+                            <TouchableOpacity style={styles.book_touch}  onPress={()=>this._gotoFristStep(child)}>
+                              <View style={styles.book_view}>
+                                <Text style={styles.book_text}>Book</Text>
+                              </View>
+                            </TouchableOpacity>
+                            {
+                              service.child_status[j] ? (
+                                <View style={styles.expand_view}>
+                                  <Text style={styles.expand_text}>{child.description}</Text>
+                                </View>
+                              ) : null
+                            }
+                            <View style={this.state.balayage_info ? styles.expand_line : styles.expand_line_empty}/>
                           </View>
-                        )
-                      ):null*/}
+                        </View>
+                      )
+                    ):null
+                  }
+                </View>
                 )
               )
             }
-            <TouchableOpacity style={{flexDirection:'row', height: 120, borderBottomWidth: 0.2}} onPress={() => this.setState({m_open: true})}>
-              <View style={styles.rating_view}>
-                <Text style={{fontFamily: 'Montserrat', fontSize: 40, fontWeight: '100'}}>4.5</Text>
-                <Image source={require('../../img/4_5_stars_small.png')} style={{width:80, height:12, marginTop: 5}}/>
-                <Text style={{fontFamily: 'Montserrat', fontSize: 11,marginTop:5}}>Based on 1,262 reviews</Text>
-              </View>
-              <View style={styles.rating_view_right}>
-                <View style={{flexDirection:'row'}}>
-                  <Text style={styles.rating_text}>Cleanliness</Text>
-                  <Image source={require('../../img/4_stars_small.png')} style={styles.rating_star}/>
-                </View>
-                <View style={{flexDirection:'row', marginTop: 5}}>
-                  <Text style={styles.rating_text}>Communicaton</Text>
-                  <Image source={require('../../img/4_5_stars_small.png')} style={styles.rating_star}/>
-                </View>
-                <View style={{flexDirection:'row', marginTop: 5}}>
-                  <Text style={styles.rating_text}>Punctuality</Text>
-                  <Image source={require('../../img/4_5_stars_small.png')} style={styles.rating_star}/>
-                </View>
-                <View style={{flexDirection:'row', marginTop: 5}}>
-                  <Text style={styles.rating_text}>Service</Text>
-                  <Image source={require('../../img/4_5_stars_small.png')} style={styles.rating_star}/>
-                </View>
-              </View>
-            </TouchableOpacity>
+            {
+              (this.state.overall)?(
+                <TouchableOpacity style={{flexDirection:'row', height: 120, borderBottomWidth: 0.2}} onPress={() => this.setState({m_open: true})}>
+                  <View style={styles.rating_view}>
+                    <Text style={{fontFamily: 'Montserrat', fontSize: 40, fontWeight: '100'}}>{this.state.overall.toString()}</Text>
+                    <Image source={stars[this.state.overall]} style={{width:80, height:12, marginTop: 5}}/>
+                    <Text style={{fontFamily: 'Montserrat', fontSize: 11,marginTop:5}}>Based on {this.state.reviews} reviews</Text>
+                  </View>
+                  <View style={styles.rating_view_right}>
+                    <View style={{flexDirection:'row'}}>
+                      <Text style={styles.rating_text}>Cleanliness</Text>
+                      <Image source={stars[this.state.clean]} style={styles.rating_star}/>
+                    </View>
+                    <View style={{flexDirection:'row', marginTop: 5}}>
+                      <Text style={styles.rating_text}>Communicaton</Text>
+                      <Image source={stars[this.state.communication]} style={styles.rating_star}/>
+                    </View>
+                    <View style={{flexDirection:'row', marginTop: 5}}>
+                      <Text style={styles.rating_text}>Punctuality</Text>
+                      <Image source={stars[this.state.punctuality]} style={styles.rating_star}/>
+                    </View>
+                    <View style={{flexDirection:'row', marginTop: 5}}>
+                      <Text style={styles.rating_text}>Service</Text>
+                      <Image source={stars[this.state.service]} style={styles.rating_star}/>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ):null
+            }
+            
 
             <View style={styles.contact_view}>
               <Text style={styles.contact_text}>Availability</Text>
@@ -570,26 +583,26 @@ class stylistProfile extends React.Component {
             </TouchableOpacity>
 
             <View style={{alignSelf:  'center',width: Dimensions.get('window').width-40, height: 120, borderBottomWidth: 0.2, justifyContent: 'center'}}>
-              <Text style={{fontFamily: 'Montserrat', fontSize: 24}}>1,262 Reviews</Text>
-              <Image source={require('../../img/4_5_stars_small.png')} style={{width:120, height:20, marginTop: 5}} resizeMode={'contain'}/>
+              <Text style={{fontFamily: 'Montserrat', fontSize: 24}}>{(this.state.reviews)?this.state.reviews.toString():"0"} Reviews</Text>
+              <Image source={stars[this.state.overall]} style={{width:120, height:20, marginTop: 5}} resizeMode={'contain'}/>
             </View>
 
             <View style={{alignSelf:  'center',width: Dimensions.get('window').width-40, height: 200, borderBottomWidth: 0.2, justifyContent: 'center'}}>
               <View style={{flexDirection:'row'}}>
                 <Text style={{fontFamily: 'Montserrat', fontSize: 16, textAlign: 'left'}}>Cleanliness</Text>
-                <Image source={require('../../img/4_stars_small.png')} style={{width: 80, height: 28, position: 'absolute', right: 0}} resizeMode={'contain'}/>
+                <Image source={stars[this.state.clean]} style={{width: 80, height: 28, position: 'absolute', right: 0}} resizeMode={'contain'}/>
               </View>
               <View style={{flexDirection:'row', marginTop: 15}}>
                 <Text style={{fontFamily: 'Montserrat', fontSize: 16, textAlign: 'left'}}>Communicaton</Text>
-                <Image source={require('../../img/4_5_stars_small.png')} style={{width: 80, height: 28, position: 'absolute', right: 0}} resizeMode={'contain'}/>
+                <Image source={stars[this.state.communication]} style={{width: 80, height: 28, position: 'absolute', right: 0}} resizeMode={'contain'}/>
               </View>
               <View style={{flexDirection:'row', marginTop: 15}}>
                 <Text style={{fontFamily: 'Montserrat', fontSize: 16, textAlign: 'left'}}>Punctuality</Text>
-                <Image source={require('../../img/4_5_stars_small.png')} style={{width: 80, height: 28, position: 'absolute', right: 0}} resizeMode={'contain'}/>
+                <Image source={stars[this.state.punctuality]} style={{width: 80, height: 28, position: 'absolute', right: 0}} resizeMode={'contain'}/>
               </View>
               <View style={{flexDirection:'row', marginTop: 15, marginBottom: 15}}>
                 <Text style={{fontFamily: 'Montserrat', fontSize: 16, textAlign: 'left'}}>Service</Text>
-                <Image source={require('../../img/4_5_stars_small.png')} style={{width: 80, height: 28, position: 'absolute', right: 0}} resizeMode={'contain'}/>
+                <Image source={stars[this.state.service]} style={{width: 80, height: 28, position: 'absolute', right: 0}} resizeMode={'contain'}/>
               </View>
             </View>
 
