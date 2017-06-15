@@ -25,6 +25,11 @@ const time = [
   {label: '15:30', value: 10 }
 ]
 
+const times = ['15 m', '30 m', '45 m','1 h', '1 h 15 m', '1 h 30 m', '1 h 45 m', '2 h', '2 h 15 m', '2 h 30 m', '2 h 45 m', '3 h',
+              '3 h 15 m', '3 h 30 m', '3 h 45 m', '4 h', '4 h 15 m', '4 h 30 m', '4 h 45 m', '5 h', '5 h 15 m', '5 h 30 m', '5 h 45 m', 
+              '6 h', '6 h 15 m', '6 h 30 m', '6 h 45 m', '7 h', '7 h 15 m', '7 h 30 m', '7 h 45 m', '8 h', '8 h 15 m', '8 h 30 m', 
+              '8 h 45 m', '9 h', '9 h 15 m', '9 h 30 m', '9 h 45 m',  '10 h']
+
 class Selectdate extends React.Component {
     constructor(props) {
         super(props);
@@ -56,12 +61,66 @@ class Selectdate extends React.Component {
           var day = full_dayNames[nextStep.getDay()]
           var month = full_monthNames[nextStep.getMonth()]
           var year = nextStep.getFullYear()
-          days.push(day + ', ' + month + ' ' + date)
+          days.push(day + ' ' + month + ' ' + date)
         }else{
           this.setState({end_state: 1})
         }
       }
       this.setState({days: days, dataSource: this.state.dataSource.cloneWithRows(days)})
+    }
+
+    _goFinalStep() {
+      if (this.state.rowId && this.state.press_state >= 0) {
+        let data = {
+          "stylist_id" : this.props.stylist_id,
+          "service" : this.props.service,
+          "stylist_name": this.props.stylist_name,
+          "options": {
+            "size": (this.props.options)?this.props.options.size:null,
+            "length": (this.props.options)?this.props.options.length:null
+          },
+          "startTime": time[this.state.press_state].label,
+          "day": this.state.days[this.state.rowId],
+          "duration": (this.props.duration)?this.props.duration:times[this.props.service.duration],
+          "travelType":this.props.travelType,
+          "travelCost": this.props.travelCost
+        }
+        NavigationActions.finalStep(data)
+      }
+    }
+
+    _isAvailableDay(index) {
+      let day = new Date();
+      let weekday = (day.getDay() + parseInt(index)) % 7;
+      console.log(typeof(day.getDay()))
+      console.log(typeof(index))
+      console.log(weekday)
+      switch (weekday) {
+        case 0:
+          if (this.props.ability.sun.open == 0 && this.props.ability.sun.close == 0) return false
+          break
+        case 1:
+          if (this.props.ability.mon.open == 0 && this.props.ability.mon.close == 0) return false
+          break
+        case 2:
+          if (this.props.ability.thu.open == 0 && this.props.ability.thu.close == 0) return false
+          break
+        case 3:
+          if (this.props.ability.wed.open == 0 && this.props.ability.wed.close == 0) return false
+          break
+        case 4:
+          if (this.props.ability.tue.open == 0 && this.props.ability.tue.close == 0) return false
+          break
+        case 5:
+          if (this.props.ability.fri.open == 0 && this.props.ability.fri.close == 0) return false
+          break
+        case 6:
+          if (this.props.ability.sat.open == 0 && this.props.ability.sat.open == 0) return false
+          break
+        default:
+          break
+      }
+      return true;
     }
 
     renderRow (rowData: string , sectionID: number, rowID: number) {
@@ -76,7 +135,7 @@ class Selectdate extends React.Component {
             <View style={{width: 8, height: 8, borderRadius: 4, backgroundColor: '#9bd01a', position: 'absolute', right: 20}}/>
           </TouchableOpacity>
           {
-            this.state.rowId == rowID ? (
+            this.state.rowId == rowID && this._isAvailableDay(rowID) ? (
               <View style={styles.expand_view}>
                 {
                   time.map((times, i) =>
@@ -117,7 +176,7 @@ class Selectdate extends React.Component {
               }}
               onEndReachedThreshold={100}
             />
-            <TouchableOpacity style={styles.sBtn_view} onPress={NavigationActions.finalStep}>
+            <TouchableOpacity style={styles.sBtn_view} onPress={()=>this._goFinalStep()}>
               <Text style={styles.loginBtntext}>Continue</Text>
             </TouchableOpacity>
 

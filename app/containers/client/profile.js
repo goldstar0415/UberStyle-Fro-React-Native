@@ -19,8 +19,6 @@ class Profile extends React.Component {
       if (!auth.isAuthenticated) {
         NavigationActions.login();
       }
-      console.log(this.props);
-
         return (
           <View style={styles.container}>
             <ScrollView style={{flexDirection:'column', marginTop: 20 }}>
@@ -48,7 +46,7 @@ class Profile extends React.Component {
                 </View>
               </TouchableOpacity>
               <TouchableOpacity style={styles.sub_view} onPress={NavigationActions.promote1}>
-                <Text style={styles.text}>Promote</Text>
+                <Text style={styles.text}>Invite Friends</Text>
                 <View style={styles.icon_view}>
                   <Image source={require('../../img/remote.png')} style={styles.icon}/>
                 </View>

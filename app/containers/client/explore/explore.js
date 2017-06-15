@@ -8,7 +8,8 @@ import stars from '../../../components/stars';
 import { TabViewAnimated, TabBar } from 'react-native-tab-view';
 
 import { connect } from 'react-redux'
-import {setTabbar} from '../../../actions';
+import {setTabbar, ActionCreators} from '../../../actions';
+import { bindActionCreators } from 'redux';
 
 import MapView from 'react-native-maps';
 import marker_img from '../../../img/marker.png';
@@ -40,100 +41,16 @@ class Explore extends React.Component {
             { key: '1', title: 'Results' },
             { key: '2', title: 'Map' },
           ],
-          hairstylist: [
-            {
-              icon: require('../../../img/david.jpg'),
-              name: 'John Doe',
-              star: 5,
-              review: 186,
-              rating: 120,
-              availabilaty: [
-                {date: new Date(2017, 2, 3), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM', '12:30 PM']},
-                {date: new Date(2017, 2, 4), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM']},
-                {date: new Date(2017, 2, 5), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM']},
-                {date: new Date(2017, 2, 6), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM']},
-                {date: new Date(2017, 2, 7), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM', '12:30 PM']},
-                {date: new Date(2017, 2, 9), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM', '12:30 PM']}
-              ],
-              location: {
-                latitude: 37.79825,
-                longitude: -122.4424,
-              },
-              map_marker: false
-            },
-            {
-              icon: require('../../../img/stylist.png'),
-              name: 'Millena Mill',
-              star: 4,
-              review: 178,
-              rating: 100,
-              availabilaty: [
-                {date: new Date(2017, 2, 3), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM']},
-                {date: new Date(2017, 2, 4), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM']},
-                {date: new Date(2017, 2, 6), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM']},
-                {date: new Date(2017, 2, 7), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM']},
-                {date: new Date(2017, 2, 9), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM', '12:30 PM']}
-              ],
-              location: {
-                latitude: 37.78834,
-                longitude: -122.4343,
-              },
-              map_marker: false
-            },
-            {
-              icon: require('../../../img/david1.jpeg'),
-              name: 'Karim Will',
-              star: 4.5,
-              review: 160,
-              rating: 80,
-              availabilaty: [
-                {date: new Date(2017, 2, 3), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM']},
-                {date: new Date(2017, 2, 4), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM']},
-                {date: new Date(2017, 2, 6), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM']},
-                {date: new Date(2017, 2, 7), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM', '12:30 PM']},
-                {date: new Date(2017, 2, 8), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM', '12:30 PM']},
-                {date: new Date(2017, 2, 9), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM']},
-                {date: new Date(2017, 2, 10), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM', '12:30 PM']},
-                {date: new Date(2017, 2, 12), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM', '12:30 PM']},
-                {date: new Date(2017, 2, 13), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM']}
-              ],
-              location: {
-                latitude: 37.78422,
-                longitude: -122.4844,
-              },
-              map_marker: false
-            },
-            {
-              icon: require('../../../img/black_message.png'),
-              name: 'Thomas Jong',
-              star: 3.5,
-              review: 80,
-              rating: 40,
-              availabilaty: [
-                {date: new Date(2017, 2, 3), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM']},
-                {date: new Date(2017, 2, 4), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM']},
-                {date: new Date(2017, 2, 6), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM']},
-                {date: new Date(2017, 2, 7), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM', '12:30 PM']},
-                {date: new Date(2017, 2, 8), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM', '12:30 PM']},
-                {date: new Date(2017, 2, 9), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM']},
-                {date: new Date(2017, 2, 10), time: ['9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '12:00 PM', '12:30 PM']}
-              ],
-              location: {
-                latitude: 37.78565,
-                longitude: -122.4124,
-              },
-              map_marker: false
-            }
-          ],
+          hairstylist: [],
           fadeAnim: new Animated.Value(0),
           lastScrollPos: 0,
-          marker_idx: null
+          marker_idx: null,
+          data: null
         }
     }
 
     componentDidMount() {
-      this.getAvailabilaty()
-
+      // this.getAvailabilaty()
       navigator.geolocation.getCurrentPosition(
         (position) => {
           this.setState({
@@ -151,6 +68,32 @@ class Explore extends React.Component {
       );
     }
 
+    _getAllProviderWithFilter(filters) {
+      const { authState } = this.props
+      this.props.actions.getProvidersWithFilter(authState.token, filters).then(() => {
+        const {apiState} = this.props
+        this.setState({
+          hairstylist: (apiState.filterData) ? apiState.filterData:[]
+        })
+        this.getAvailabilaty()
+      })
+    }
+
+    componentWillReceiveProps(nextProps) {
+      if (nextProps.filters!=undefined) {
+        this.setState({
+          search_text: (nextProps.filters.service)?nextProps.filters.service.value:'All Services'
+        })
+        if (this.props.filters !== nextProps.filters) {
+          this._getAllProviderWithFilter(nextProps.filters)
+        }
+      }
+    }
+
+    componentWillMount() {
+      this._getAllProviderWithFilter(null)
+    }
+
     selectMarker(idx){
       var old_hairstylist = this.state.hairstylist
       old_hairstylist.map((marker, i) => {
@@ -158,18 +101,27 @@ class Explore extends React.Component {
         else marker.map_marker = false
       })
       this.setState({hairstylist: old_hairstylist, marker_idx: idx})
-      console.log(this.state.hairstylist)
+    }
+
+    _gotoStylist(id) {
+      NavigationActions.stylistProfile(id)
+    }
+
+    _getDateFromString(str) {
+      let dateStr = str.substring(0, 4) + "-" + str.substring(4 ,6) + "-" + str.substring(6,8)
+      return new Date(dateStr)
     }
 
     getAvailabilaty(){
       var subView = []
       this.state.hairstylist.map((hairstyle, i) => {
-        hairstyle.availabilaty.map((available, j) => {
-          if(available.date.getDate() < 10)var day = '0' + available.date.getDate()
-          else var day = available.date.getDate()
+        hairstyle.daysAvailabilities.map((available, j) => {
+          let date = this._getDateFromString(available)
+          if(date.getDate() < 10)var day = '0' + date.getDate()
+          else var day = date.getDate()
 
           if(j < 4){
-            subView.push(<View key={j} style={{width: 80, height: 25, alignSelf: 'center', alignItems: 'center', justifyContent: 'center'}}><View style={{width: 65, height: 18, borderRadius: 10, borderWidth: 1, alignSelf: 'center', alignItems: 'center', justifyContent: 'center'}}><Text style={{fontSize: 10}}>{monthNames[available.date.getMonth()] + ' ' + day}</Text></View></View>)
+            subView.push(<View key={j} style={{width: 80, height: 25, alignSelf: 'center', alignItems: 'center', justifyContent: 'center'}}><View style={{width: 65, height: 18, borderRadius: 10, borderWidth: 1, alignSelf: 'center', alignItems: 'center', justifyContent: 'center'}}><Text style={{fontSize: 10}}>{monthNames[date.getMonth()] + ' ' + day}</Text></View></View>)
           }
         })
         availableView[i] = subView
@@ -214,32 +166,42 @@ class Explore extends React.Component {
             }}
           >
             {
-              this.state.hairstylist.map((hairstyle, i) =>
-                <TouchableOpacity key={i} onPress={NavigationActions.stylistProfile}>
-                  <View style={styles.sub_view}>
-                    <View style={styles.profile_view}>
-                      <Image source={hairstyle.icon} style={styles.profile}/>
-                      <View style={styles.name_view}>
-                        <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 14}}>{hairstyle.name}</Text>
-                        <View style={styles.review_view}>
-                          <Image source={stars[hairstyle.star]} style={styles.rating_star}/>
-                          <Text style={{fontFamily: 'Montserrat', paddingLeft: 5, textAlign: 'left', fontSize: 10}}>{hairstyle.review} Reviews</Text>
+              this.state.hairstylist.length == 0 ? (
+                <View style={styles.top_view}>
+                  <Text style={{fontSize: 20, fontFamily: 'Montserrat', textAlign: 'center', marginBottom: 10}}>Sorry, no result found</Text>
+                </View>
+              ) : (
+                this.state.hairstylist.map((hairstyle, i) =>
+                  <TouchableOpacity key={i} onPress={()=>this._gotoStylist(hairstyle._id)}>
+                    <View style={styles.sub_view}>
+                      <View style={styles.profile_view}>
+                        <Image source={(hairstyle.icon)?hairstyle.icon:require('../../../img/stylist.png')} style={styles.profile}/>
+                        <View style={styles.name_view}>
+                          <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 14}}>{hairstyle.name}</Text>
+                          <View style={styles.review_view}>
+                            {
+                              (hairstyle.star) ? (
+                                <Image source={stars[(hairstyle.star)?hairstyle.star:4.5]} style={styles.rating_star}/>
+                              ):null
+                            }
+                            <Text style={{fontFamily: 'Montserrat', paddingLeft: 5, textAlign: 'left', fontSize: 10}}>{(hairstyle.review)?hairstyle.review+" Reviews":""}</Text>
+                          </View>
                         </View>
+                        <Text style={styles.rating_text}>{(hairstyle.rating)?'$'+hairstyle.rating:""}</Text>
                       </View>
-                      <Text style={styles.rating_text}>${hairstyle.rating}</Text>
+                      <View style={styles.line_view}/>
+                      <View style={{flexDirection: 'column'}}>
+                        <View style={{height: 30, justifyContent: 'center', alignItems: 'center'}}>
+                          <Text style={{fontFamily: 'Montserrat', fontSize: 12, }}>Next Availability</Text>
+                        </View>
+                        <View style={{flexDirection: 'row'}}>
+                          {availableView[i]}
+                        </View>
+                        <View style={{height: 15}}/>
+                      </View>
                     </View>
-                    <View style={styles.line_view}/>
-                    <View style={{flexDirection: 'column'}}>
-                      <View style={{height: 30, justifyContent: 'center', alignItems: 'center'}}>
-                        <Text style={{fontFamily: 'Montserrat', fontSize: 12, }}>Next Availability</Text>
-                      </View>
-                      <View style={{flexDirection: 'row'}}>
-                        {availableView[i]}
-                      </View>
-                      <View style={{height: 15}}/>
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                )
               )
             }
             <View style={{height: 10, backgroundColor: '#f1f0f0'}}/>
@@ -258,7 +220,7 @@ class Explore extends React.Component {
                   <MapView.Marker
                     key={i}
                     image={marker.map_marker ? marker_img_selected : marker_img}
-                    coordinate={marker.location}
+                    coordinate={(marker.location && marker.location.address && marker.location.address.geoLocation.coordinates[0])?{latitude: marker.location.address.geoLocation.coordinates[1], longitude: marker.location.address.geoLocation.coordinates[0]}: {latitude: 37.78565 + i*10, longitude: -122.4124+ i*10}}
                     onSelect={() => this.selectMarker(i)}
                   />
                 ))}
@@ -266,13 +228,13 @@ class Explore extends React.Component {
                 {
                   this.state.marker_idx != null ? (
                     <View style={{flexDirection: 'row', backgroundColor:'white', width: Dimensions.get('window').width - 20, height: 70, alignSelf: 'center', justifyContent: 'center', alignItems: 'center',marginBottom: 60, borderRadius: 2}}>
-                      <TouchableOpacity style={{flexDirection: 'row',  justifyContent: 'center', alignItems: 'center', position: 'absolute', left: 0}} onPress={NavigationActions.stylistProfile}>
-                        <Image source={this.state.hairstylist[this.state.marker_idx].icon} style={styles.profile}/>
+                      <TouchableOpacity style={{flexDirection: 'row',  justifyContent: 'center', alignItems: 'center', position: 'absolute', left: 0}} onPress={NavigationActions.stylistProfile(this.state.hairstylist[this.state.marker_idx]._id)}>
+                        <Image source={(this.state.hairstylist[this.state.marker_idx].icon)?this.state.hairstylist[this.state.marker_idx].icon:require('../../../img/stylist.png')} style={styles.profile}/>
                         <View style={styles.name_view}>
                           <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 14}}>{this.state.hairstylist[this.state.marker_idx].name}</Text>
                           <View style={styles.review_view}>
-                            <Image source={stars[this.state.hairstylist[this.state.marker_idx].star]} style={styles.rating_star}/>
-                            <Text style={{fontFamily: 'Montserrat', paddingLeft: 5, textAlign: 'left', fontSize: 10}}>{this.state.hairstylist[this.state.marker_idx].review} Reviews</Text>
+                            <Image source={(this.state.hairstylist[this.state.marker_idx].star)?stars[this.state.hairstylist[this.state.marker_idx].star]:stars[4.5]} style={styles.rating_star}/>
+                            <Text style={{fontFamily: 'Montserrat', paddingLeft: 5, textAlign: 'left', fontSize: 10}}>{(this.state.hairstylist[this.state.marker_idx].review)?this.state.hairstylist[this.state.marker_idx].review:160} Reviews</Text>
                           </View>
                         </View>
                       </TouchableOpacity>
@@ -382,6 +344,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 15
   },
+  top_view: {
+    flexDirection: 'column',
+    width: width,
+    height: 140,
+    alignSelf: 'center',
+    justifyContent: 'center'
+  },
   profile_view: {
     flexDirection: 'row',
     width: Dimensions.get('window').width - 20,
@@ -419,17 +388,23 @@ const styles = StyleSheet.create({
 });
 
 const mapStateToProps = (state) => {
-    const props = {
-        tabHide: state.tabbar.tabHide,
-    };
-    return props;
+  const { api } = state
+  const { auth } = state
+  const props = {
+      tabHide: state.tabbar.tabHide,
+      filters: state.service.filters,
+      apiState: api,
+      authState: auth,
+  };
+  return props;
 };
 
 const mapDispatchToProps = (dispatch) => {
     return {
         setTabbar: (tabHide) => {
             dispatch(setTabbar(tabHide));
-        }
+        },
+        actions: bindActionCreators(ActionCreators, dispatch),
     }
 }
 

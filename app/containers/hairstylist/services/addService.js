@@ -4,7 +4,8 @@ import Button from 'react-native-button';
 import { Actions as NavigationActions } from 'react-native-router-flux'
 
 import { connect } from 'react-redux'
-import {dataSave, dataDelete} from '../../../actions';
+import {dataSave, dataDelete, ActionCreators} from '../../../actions';
+import { bindActionCreators } from 'redux';
 
 import Modal from 'react-native-modalbox';
 import RadioButton from 'radio-button-react-native';
@@ -60,9 +61,9 @@ const time = [
   {label: '10 h', value: 39 }
 ]
 
-const category = ['Barber', 'Haircut', 'Weaves', 'Color', 'Natural Hair', 'Straightening']
-const sub_category = ['All Specialities', "Men's haircut", 'Line-Up', 'Haircut & Beard Trim', 'Fade', 'Taper', 'Clipper Haircut', 'Create Your Own']
+var sub_category = [];
 var category_data = [];
+var category = {}
 
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
@@ -80,7 +81,8 @@ class Addservice extends React.Component {
           power_booking: false,
           micro_state: false,
           medium_state: false,
-          category_data: this._genRow(),
+          category_data: [],
+          sub_category_data: [],
           category_dataSource: ds,
           sub_category_dataSource: ds,
           service_name: null,
@@ -101,31 +103,105 @@ class Addservice extends React.Component {
           length_selected: false,
           main_category: null,
           price_value: null,
-          flag: true
-
+          flag: true,
+          parent_id: 0,
+          child_id: 0,
+          description: '',
         }
     }
 
     componentDidMount(){
-      this.setState({
-        category_dataSource: this.state.category_dataSource.cloneWithRows(this.state.category_data)
-      })
-      if(this.props.data == 1){
-        this.setState({main_category: this.props.save_data[0],  service_name: this.props.save_data[1], time_value: this.props.save_data[5], price_value: this.props.save_data[2], checked: this.props.save_data[3]})
+      this._getParentSerivces()
+
+      if(this.props.data != 0){
+        this.setState({main_category: this.props.save_data[0],  service_name: this.props.data.name, time_value: this.props.data.duration, price_value: this.props.data.price.toString(), checked: false})
       }
+    }
+
+    _getParentSerivces() {
+      this.props.actions.getParentServices().then(() => {
+        category_data = []
+        category = []
+        category = this.props.serviceState
+        category.sort( function( a, b ) {
+          a = a.name.toLowerCase();
+          b = b.name.toLowerCase();
+
+          return a < b ? -1 : a > b ? 1 : 0;
+        });
+
+        for (i=0;i<category.length;i++) {
+          category_data.push({
+            value: category[i].name,
+            id: category[i]._id,
+            isSelect: false
+          })
+        }
+        this.setState({
+          category_data: category_data
+        })
+        this.setState({
+          category_dataSource: this.state.category_dataSource.cloneWithRows(this.state.category_data)
+        })
+        this.categoryPress(category_data[0], 0)
+      });
+    }
+
+    _getChildService(parent_id) {
+      this.props.actions.getChildServices(parent_id).then(() => {
+        sub_category = []
+        for (i=0;i<this.props.childService.length;i++) {
+          sub_category.push({
+            value: this.props.childService[i].name,
+            id: this.props.childService[i]._id,
+            isSelect: false
+          })
+        }
+
+        sub_category.sort( function( a, b ) {
+          a = a.value.toLowerCase();
+          b = b.value.toLowerCase();
+
+          return a < b ? -1 : a > b ? 1 : 0;
+        });
+        
+        sub_category.push({
+          value: "Create Your Own",
+          id: 0,
+          isSelect: false
+        })
+
+        this.setState({
+          sub_category_data: sub_category
+        })
+        this.setState({
+          sub_category_dataSource: this.state.sub_category_dataSource.cloneWithRows(this.state.sub_category_data)
+        })
+      });
     }
 
     saveData(){
       var data = [this.state.main_category, this.state.service_name, this.state.price_value, this.state.checked, time[this.state.time_value].label, this.state.time_value]
-      this.props.dataSave(data)
-      NavigationActions.pop()
+      const { authState } = this.props;
+      this.props.actions.addService(authState.token, this.state.child_id, this.state.service_name, this.state.description, this.state.time_value,
+      this.state.price_value, this.state.checked).then(()=>{
+        if (authState.isAuthenticated) {
+          this.props.dataSave(data)    
+          NavigationActions.pop({refresh:{test:true}})
+        } else {
+          console.log('error saving');
+          console.log(authState);
+        }
+      })
+      
     }
 
     _genRow(){
       category_data = []
-      for (var i = 0; i < category.length; i++){
+      for (i=0;i<category.length;i++) {
         category_data.push({
-          value: category[i],
+          value: category[i].name,
+          id: category[i]._id,
           isSelect: false
         })
       }
@@ -139,7 +215,11 @@ class Addservice extends React.Component {
       categoryClone[rowID] = rowData
       const rowHasChanged = (r1, r2) => r1 !== r2
       const ds = new ListView.DataSource({rowHasChanged})
-      this.setState({category_dataSource: ds.cloneWithRows(categoryClone), sub_category_dataSource: ds.cloneWithRows(sub_category), main_category: rowData})
+      this.setState({
+        category_dataSource: ds.cloneWithRows(categoryClone)
+      })
+      this._getChildService(rowData.id)
+      this.setState({main_category: rowData})
     }
 
     renderCategory (rowData: string , sectionID: number, rowID: number) {
@@ -153,9 +233,10 @@ class Addservice extends React.Component {
     }
     renderSubCategory (rowData: string , sectionID: number, rowID: number) {
       return (
-        <TouchableHighlight  onPress={() => rowData == 'Create Your Own' ? this.setState({category_open: false, own_open: true}) : this.setState({category_open: false, service_name: rowData})} underlayColor='#f26c4f'>
+        <TouchableHighlight  onPress={() => rowData.value == 'Create Your Own' ? this.setState({category_open: false, own_open: true}) : 
+          this.setState({category_open: false, service_name: rowData.value, child_id: rowData.id})} underlayColor='#f26c4f'>
           <View style={styles.sub_category_view}>
-            <Text style={rowData == 'Create Your Own' ? {fontSize: 14, fontFamily: 'Montserrat', alignSelf: 'center', color: '#f26c4f'} : {fontSize: 14, fontFamily: 'Montserrat', alignSelf: 'center'}}>{rowData}</Text>
+            <Text style={rowData.value == 'Create Your Own' ? {fontSize: 14, fontFamily: 'Montserrat', alignSelf: 'center', color: '#f26c4f'} : {fontSize: 14, fontFamily: 'Montserrat', alignSelf: 'center'}}>{rowData.value}</Text>
           </View>
         </TouchableHighlight>
       )
@@ -177,14 +258,14 @@ class Addservice extends React.Component {
         this.setState({description: ''})
         Alert.alert('Warning!', "You cannot write an email address, your phone number or add a website link")
       }else{
-        this.setState({description})
+        this.setState({description:description})
       }
     }
 
     setPrice(event) {
       let price_value = event.nativeEvent.text;
-      if(price_value.length == 1 && this.state.flag == true){price_value = '$' + price_value; this.setState({flag: false})}
-      else if(price_value.length == 0)this.setState({flag: true})
+      // if(price_value.length == 1 && this.state.flag == true){price_value = '$' + price_value; this.setState({flag: false})}
+      // else if(price_value.length == 0)this.setState({flag: true})
       this.setState({price_value, medium_price_1: price_value})
     }
 
@@ -418,7 +499,7 @@ class Addservice extends React.Component {
               </TouchableOpacity>
               <Text style={{fontSize: 16, fontFamily: 'Montserrat', color: 'white', textAlign: 'center', marginTop: Platform.OS === 'ios' ? 15 : 0}}>{this.props.data == 0 ? 'Add Service' : 'Edit Service'}</Text>
               {
-                this.props.data == 1 ? (
+                this.props.data != 0 ? (
                   <TouchableOpacity  style={{alignSelf: 'center', position: 'absolute', right: 12, top: Platform.OS === 'ios' ? 32 : 15}} onPress={() => Alert.alert(
                         'Warning!',
                         "Do you really want to delete this service?",
@@ -982,10 +1063,14 @@ const styles = StyleSheet.create({
 });
 
 const mapStateToProps = (state) => {
-    const props = {
-      save_data: state.addService.save_data
-    };
-    return props;
+  const { auth } = state;
+  const props = {
+    save_data: state.addService.save_data,
+    serviceState: state.api.service,
+    childService: state.api.childService,
+    authState: auth
+  };
+  return props;
 };
 
 const mapDispatchToProps = (dispatch) => {
@@ -995,7 +1080,8 @@ const mapDispatchToProps = (dispatch) => {
       },
       dataDelete: () => {
           dispatch(dataDelete());
-      }
+      },
+      actions: bindActionCreators(ActionCreators, dispatch),
     }
 }
 

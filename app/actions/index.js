@@ -228,6 +228,13 @@ export function setPressState(press_state) {
   }
 }
 
+export function setFilter(filter) {
+  return {
+    type: 'SET_FILTER',
+    filter
+  }
+}
+
 export const ActionCreators = Object.assign({},
   AuthActions, ApiActions
 );

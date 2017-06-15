@@ -55,8 +55,12 @@ class Addphoto extends React.Component {
       if(this.state.photo != ''){
         this.setState({open: true})
       }else{
-//        NavigationActions.emailConfirm()
-        NavigationActions.selectDesired()
+        let data = {
+          "stylist_id" : this.props.stylist_id,
+          "service" : this.props.service,
+          "stylist_name": this.props.stylist_name
+        }
+        NavigationActions.selectDesired(data)
       }
     }
 

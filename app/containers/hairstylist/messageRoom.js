@@ -25,9 +25,9 @@ class messageRoom extends React.Component {
               animated: false
             },
             {
-              icon: this.props.icon,
-              text: this.props.text,
-              date: this.props.date,
+              icon: require('../../img/stylist.png'),
+              text: this.props.messages[0].message,
+              date: new Date(this.props.messages[0].meta.dateTime),
               image: '',
               answer: false,
               animated: false
@@ -44,7 +44,7 @@ class messageRoom extends React.Component {
     }
 
     getDates(){
-      var date = this.props.date
+      var date = new Date(this.props.messages[0].meta.dateTime)
       var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       var month = monthNames[date.getMonth()] + ' ' + date.getDate()
       var hours = date.getHours()
@@ -153,7 +153,7 @@ class messageRoom extends React.Component {
               <TouchableOpacity  style={styles.back_touch} onPress={Actions.pop}>
                 <Image source={require('../../img/back_white.png')}  style={{width: 15,height: 15}}/>
               </TouchableOpacity>
-              <Text style={styles.name}>{this.props.name}</Text>
+              <Text style={styles.name}>{this.props.messages[0].meta.sender.name}</Text>
             </View>
 
             {

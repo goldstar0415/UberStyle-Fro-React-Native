@@ -1,10 +1,11 @@
 import React, {Component} from 'react';
-import {StyleSheet, Text, View, ScrollView, Image, ListView, TouchableHighlight, TouchableOpacity, Dimensions, Animated, Platform} from "react-native";
+import {StyleSheet, Text, View, ScrollView, Image, ListView, TouchableHighlight, TouchableOpacity, Dimensions, Animated, Platform, AsyncStorage} from "react-native";
 import Button from 'react-native-button';
 import { Actions as NavigationActions } from 'react-native-router-flux'
+import { bindActionCreators } from 'redux';
 
 import { connect } from 'react-redux'
-import { setDailyBadge } from '../../../actions';
+import { setDailyBadge, ActionCreators } from '../../../actions';
 
 import PercentageCircle from 'react-native-percentage-circle';
 
@@ -15,6 +16,9 @@ var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
 var dayNames = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 var times, days
 var daily_badge = 0
+let alert_data = []
+
+let appointment_data = []
 
 class Daily extends React.Component {
     constructor(props) {
@@ -28,43 +32,75 @@ class Daily extends React.Component {
 
         this.state = {
           date: day + ', ' + month + ' ' + dates + ', ' + year,
-          alerts: [
-            {
-              icon: require('../../../img/david.jpg'),
-              name: 'Brandon Crownley',
-              available: new Date(2017, 2, 7, 11, 0),
-              type: "Women's Cut",
-              ability: '30 mins',
-              reading: false
-            },
-            {
-              icon: require('../../../img/stylist.png'),
-              name: 'David Cameron',
-              available: new Date(2017, 2, 8, 10, 30),
-              type: "Women's Cut",
-              ability: '30 mins',
-              reading: false
-            }
-          ],
-          appointments: [
-            {
-              icon: require('../../../img/david1.jpeg'),
-              name: 'Brandon Crownley',
-              star: 4.5,
-              available: new Date(2017, 2, 30, 11, 0),
-              type: "Women's Cut",
-              ability: '30 mins',
-              reading: false
-            }
-          ],
+          alerts: alert_data,
+          appointments: appointment_data,
         }
     }
 
-    componentDidMount() {
+    _isAppointmentForConfirmed(str) {
+      return (str=="Confirmed")?true:false
+    }
 
+    _getDailyBooking() {
+      this.props.actions.getDailyBookings(this.props.authState.token).then(()=>{
+        const {apiState} = this.props
+        appointment_data = []
+        alert_data = []
+        for(i=0; i<apiState.dailyBookings.length; i++) {
+          let appointment = apiState.dailyBookings[i]
+          var tmp = {}
+          tmp["id"]=appointment._id,
+          tmp["icon"]=(appointment.icon) ? appointment.icon : require('../../../img/david.jpg');
+          tmp["name"]=(appointment.user) ? appointment.user.name : "No Name";
+          tmp["star"]=(appointment.star) ? appointment.star : 4.5;
+          tmp["available"]=(appointment.startDatetime) ? new Date(appointment.startDatetime) : new Date();
+          tmp["type"]=(appointment.service) ? appointment.service.name : "No Service";
+          tmp["ability"]=(appointment.duration) ? appointment.duration+"mins" : "No Ability";
+          tmp["cost"]=(appointment.cost) ? appointment.cost : 50;
+          tmp["status"]=(appointment.status) ? appointment.status : "Confirmed";
+          if (this._isAppointmentForConfirmed(tmp["status"])) {
+            appointment_data.push(tmp)
+          } else {
+            alert_data.push(tmp)
+          }
+        }
+        this.setState({
+          appointments: appointment_data,
+          alerts: alert_data
+        })
+      });
+    }
+
+    _getProfileState() {
+      AsyncStorage.getItem("service_state").then((value) => {
+        this.setState({service_state: parseInt(value)})
+      }).catch((error) => {
+        this.setState({service_state: 0})
+      })
+      AsyncStorage.getItem("photo_state").then((value) => {
+        this.setState({photo_state: parseInt(value)})
+      }).catch((error) => {
+        this.setState({photo_state: 0})
+      })
+      AsyncStorage.getItem("address_state").then((value) => {
+        this.setState({address_state: parseInt(value)})
+      }).catch((error) => {
+        this.setState({address_state: 0})
+      })
+      AsyncStorage.getItem("about_state").then((value) => {
+        this.setState({about_state: parseInt(value)})
+      }).catch((error) => {
+        this.setState({about_state: 0})
+      })
+    }
+
+    componentDidMount() {
+      this._getDailyBooking();
+      this._getProfileState();
     }
 
     getDates(date){
+      date = new Date(date)
       var day = dayNames[date.getDay()];
       var month = monthNames[date.getMonth()];
       var dates = date.getDate();
@@ -104,10 +140,9 @@ class Daily extends React.Component {
           if(!alert.reading)daily_badge++
         })
       }
-
+      NavigationActions.confirmed({data:appointment});
       this.props.setDailyBadge(daily_badge)
-
-      NavigationActions.pending()
+      
     }
 
     alertPress(alert, i){
@@ -125,7 +160,7 @@ class Daily extends React.Component {
           if(!appointment.reading)daily_badge++
         })
       }
-
+      NavigationActions.pending({data:alert});
       this.props.setDailyBadge(daily_badge)
     }
 
@@ -140,12 +175,12 @@ class Daily extends React.Component {
             </View>
 
             {
-              this.props.service_state != 0 || this.props.photo_state != 0 || this.props.address_state != 0 || this.props.about_state != 0 ? (
+              this.state.service_state == 0 || this.state.photo_state == 0 || this.state.address_state == 0 || this.state.about_state == 0 ? (
                 <View style={styles.top_view}>
                   <Text style={{fontSize: 20, fontFamily: 'Montserrat', textAlign: 'center', marginBottom: 10}}>No Reservation Requests</Text>
                   <Text style={{fontSize: 14, fontFamily: 'Montserrat', textAlign: 'center'}}>You have no reservation requests right now.{'\n'}Make sure to share your profile with all your{'\n'}clients and friends.</Text>
                 </View>
-              ) : this.state.appointments == null ? (
+              ) : this.state.appointments == null || this.state.appointments.length == 0 ? (
                 <View style={styles.top_view}>
                   <Text style={{fontSize: 20, fontFamily: 'Montserrat', textAlign: 'center', marginBottom: 10}}>No Appointments Today</Text>
                 </View>
@@ -178,31 +213,31 @@ class Daily extends React.Component {
             </View>
 
             {
-              this.props.service_state != 0 || this.props.photo_state != 0 || this.props.address_state != 0 || this.props.about_state != 0 ? (
+              this.state.service_state == 0 || this.state.photo_state == 0 || this.state.address_state == 0 || this.state.about_state == 0 ? (
                 <View style={styles.bottom_view}>
                   <View style={{alignSelf: 'center', marginBottom: 30}}>
-                    <PercentageCircle radius={50} percent={25*(this.props.service_state+this.props.photo_state+this.props.address_state+this.props.about_state)} color={"#9bd01a"} borderWidth={5} textStyle={{fontSize:20, color:'#9bd01a'}}></PercentageCircle>
+                    <PercentageCircle radius={50} percent={25*(this.state.service_state+this.state.photo_state+this.state.address_state+this.state.about_state)} color={"#9bd01a"} borderWidth={5} textStyle={{fontSize:20, color:'#9bd01a'}}></PercentageCircle>
                   </View>
 
                   <View style={{flexDirection: 'row'}}>
                     <View style={{flexDirection: 'column'}}>
                       <View style={styles.check_view}>
-                        <Image source={this.props.service_state == 0 ? require('../../../img/check_gray.png') : require('../../../img/check.png')}  style={{width: 20,height: 20}}/>
-                        <Text style={this.props.service_state == 0 ? [styles.check_text, {color: '#d7d7d7'}] : styles.check_text}>Services</Text>
+                        <Image source={this.state.service_state == 0 ? require('../../../img/check_gray.png') : require('../../../img/check.png')}  style={{width: 20,height: 20}}/>
+                        <Text style={this.state.service_state == 0 ? [styles.check_text, {color: '#d7d7d7'}] : styles.check_text}>Services</Text>
                       </View>
                       <View style={styles.check_view}>
-                        <Image source={this.props.address_state == 0 ? require('../../../img/check_gray.png') : require('../../../img/check.png')}  style={{width: 20,height: 20}}/>
-                        <Text style={this.props.address_state == 0 ? [styles.check_text, {color: '#d7d7d7'}] : styles.check_text}>Location</Text>
+                        <Image source={this.state.address_state == 0 ? require('../../../img/check_gray.png') : require('../../../img/check.png')}  style={{width: 20,height: 20}}/>
+                        <Text style={this.state.address_state == 0 ? [styles.check_text, {color: '#d7d7d7'}] : styles.check_text}>Location</Text>
                       </View>
                     </View>
                     <View style={{flexDirection: 'column', marginLeft: 40}}>
                       <View style={styles.check_view}>
-                        <Image source={this.props.photo_state == 0 ? require('../../../img/check_gray.png') : require('../../../img/check.png')}  style={{width: 20,height: 20}}/>
-                        <Text style={this.props.photo_state == 0 ? [styles.check_text, {color: '#d7d7d7'}] : styles.check_text}>Photos</Text>
+                        <Image source={this.state.photo_state == 0 ? require('../../../img/check_gray.png') : require('../../../img/check.png')}  style={{width: 20,height: 20}}/>
+                        <Text style={this.state.photo_state == 0 ? [styles.check_text, {color: '#d7d7d7'}] : styles.check_text}>Photos</Text>
                       </View>
                       <View style={styles.check_view}>
-                        <Image source={this.props.about_state == 0 ? require('../../../img/check_gray.png') : require('../../../img/check.png')}  style={{width: 20,height: 20}}/>
-                        <Text style={this.props.about_state == 0 ? [styles.check_text, {color: '#d7d7d7'}] : styles.check_text}>About Me</Text>
+                        <Image source={this.state.about_state == 0 ? require('../../../img/check_gray.png') : require('../../../img/check.png')}  style={{width: 20,height: 20}}/>
+                        <Text style={this.state.about_state == 0 ? [styles.check_text, {color: '#d7d7d7'}] : styles.check_text}>About Me</Text>
                       </View>
                     </View>
                   </View>
@@ -211,7 +246,7 @@ class Daily extends React.Component {
                     <Text style={{fontSize: 14, fontFamily: 'Montserrat', color: '#f26c4f', textAlign: 'center'}}>Complete your profile</Text>
                   </TouchableOpacity>
                 </View>
-              ) : this.state.alerts == null ? (
+              ) : this.state.alerts == null || this.state.alerts.length == 0 ? (
                 <View style={styles.bottom_view}>
                   <Text style={{fontSize: 20, fontFamily: 'Montserrat', textAlign: 'center', marginBottom: 10}}>No Alerts Today</Text>
                 </View>
@@ -318,12 +353,16 @@ const styles = StyleSheet.create({
 });
 
 const mapStateToProps = (state) => {
+  const { api } = state
+  const { auth } = state
     const props = {
       daily_badge: state.daily.daily_badge,
       photo_state: state.daily.photo_state,
       service_state: state.daily.service_state,
       address_state: state.daily.address_state,
       about_state: state.daily.about_state,
+      apiState: api,
+      authState: auth
     };
     return props;
 };
@@ -332,7 +371,8 @@ const mapDispatchToProps = (dispatch) => {
     return {
       setDailyBadge: (daily_badge) => {
           dispatch(setDailyBadge(daily_badge));
-      }
+      },
+      actions: bindActionCreators(ActionCreators, dispatch), 
     }
 }
 

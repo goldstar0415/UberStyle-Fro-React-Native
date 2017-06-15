@@ -4,6 +4,9 @@ import Button from 'react-native-button';
 import { Actions as NavigationActions } from 'react-native-router-flux'
 
 import { connect } from 'react-redux'
+import { bindActionCreators } from 'redux';
+import {ActionCreators} from '../../../actions';
+
 import Modal from 'react-native-modalbox';
 
 import RadioButton from 'radio-button-react-native';
@@ -22,6 +25,9 @@ const cancel_options = [
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
 
+var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+var dayNames = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 class Pending extends React.Component {
     constructor(props) {
         super(props);
@@ -33,19 +39,7 @@ class Pending extends React.Component {
           dataSource: ds.cloneWithRows(cancel_options),
           cancel_state: 0,
           appointments: [
-            {
-              icon: require('../../../img/david1.jpeg'),
-              name: 'Brandon Crownley',
-              star: 4.5,
-              available: 'Thu, Mar 19 • 11:00 AM',
-              type: "Women's Cut",
-              ability: '30 mins',
-              reading: false,
-              location: {
-                latitude: 37.79825,
-                longitude: -122.4424,
-              },
-            }
+
           ],
         }
 
@@ -82,6 +76,43 @@ class Pending extends React.Component {
       )
     }
 
+    getDates(date){
+      date = new Date(date)
+      var day = dayNames[date.getDay()];
+      var month = monthNames[date.getMonth()];
+      var dates = date.getDate();
+      var year = date.getFullYear();
+
+      var hours = date.getHours()
+      hours = (hours+24)%24
+      var mid='AM'
+      if(hours==0){
+        hours=12
+      }else if(hours>12){
+        hours=hours%12
+        mid='PM'
+      }
+      if(date.getMinutes() < 10)var minutes = '0' + date.getMinutes()
+      else var minutes = date.getMinutes()
+
+      let times = hours + ':' + minutes + ' ' + mid
+
+      let days = day + ', ' + month + ' ' + dates
+
+      return days + ' ・ ' + times
+    }
+
+    _rejectAppointment() {
+      this.props.cancelAppointment(this.props.auth.token, this.props.data.id, cancel_options[this.state.cancel_state].label, this.state.description).then(()=>{
+        this.setState({cancel_open: true})
+      });
+    }
+
+    _acceptAppointment() {
+      this.props.acceptAppointment(this.props.auth.token, this.props.data.id).then(()=>{
+        NavigationActions.confirmed({data: this.props.data});
+      });
+    }
 
     render() {
         return (
@@ -98,27 +129,27 @@ class Pending extends React.Component {
                       <Text style={{fontFamily: 'Montserrat', fontSize: 12}}>CALENDAR</Text>
                     </TouchableOpacity>
                   </View>
-                  <Text style={{fontFamily: 'Montserrat', fontSize: 26, marginTop: 20}}>Crochet Braids</Text>
-                  <Text style={{fontFamily: 'Montserrat', fontSize: 14}}>{this.state.appointments[0].available}{'\n'}Pending</Text>
+                  <Text style={{fontFamily: 'Montserrat', fontSize: 26, marginTop: 20}}>{this.props.data.type}</Text>
+                  <Text style={{fontFamily: 'Montserrat', fontSize: 14}}>{this.getDates(this.props.data.available)}{'\n'}Pending</Text>
                 </View>
 
                 <View style={{flexDirection: 'row', width: width - 40, height: 80, alignItems: 'center', borderBottomWidth: 0.2}}>
-                  <Image source={this.state.appointments[0].icon} style={styles.profile}/>
+                  <Image source={this.props.data.icon} style={styles.profile}/>
                   <View style={styles.review_view}>
-                    <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 14}}>{this.state.appointments[0].name}</Text>
-                    <Image source={stars[this.state.appointments[0].star]} style={styles.rating_star}/>
+                    <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 14}}>{this.props.data.name}</Text>
+                    <Image source={stars[this.props.data.star]} style={styles.rating_star}/>
                   </View>
                 </View>
 
                 <View style={{flexDirection: 'row', width: width - 40, height: 150, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 0.2}}>
                   <View style={styles.circle_view}>
-                    <TouchableOpacity onPress={() => this.setState({cancel_open: true})}>
+                    <TouchableOpacity onPress={() => this._rejectAppointment()}>
                       <Image source={require('../../../img/ic_cancel.png')}  style={{width: 60,height: 60}}/>
                     </TouchableOpacity>
                     <Text style={styles.circle_text}>Reject</Text>
                   </View>
                   <View style={styles.circle_view}>
-                    <TouchableOpacity onPress={() => NavigationActions.confirmed(this.state.appointments)}>
+                    <TouchableOpacity onPress={() => this._acceptAppointment()}>
                       <Image source={require('../../../img/ic_accept.png')}  style={{width: 60,height: 60}}/>
                     </TouchableOpacity>
                     <Text style={styles.circle_text}>Accept</Text>
@@ -134,7 +165,7 @@ class Pending extends React.Component {
                 <View style={styles.bottom_view}>
                   <Text style={styles.left_text}>Total Cost</Text>
                   <TouchableOpacity style={{position: 'absolute', right: 0}}>
-                    <Text style={styles.right_text}>$423 CAD</Text>
+                    <Text style={styles.right_text}>${this.props.data.cost}</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={styles.bottom_view}>
@@ -273,16 +304,13 @@ const styles = StyleSheet.create({
 
 
 const mapStateToProps = (state) => {
-    const props = {
-
-    };
-    return props;
+   const {api} = state
+   const {auth} = state
+   return {api, auth}
 };
 
 const mapDispatchToProps = (dispatch) => {
-    return {
-
-    }
+    return bindActionCreators(ActionCreators, dispatch);
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Pending)

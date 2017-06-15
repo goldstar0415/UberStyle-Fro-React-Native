@@ -4,11 +4,12 @@ import Button from 'react-native-button';
 import { Actions as NavigationActions } from 'react-native-router-flux'
 
 import { connect } from 'react-redux'
+import { bindActionCreators } from 'redux';
+import { ActionCreators } from '../../../actions';
 
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
-
-var brittany = ['Fro', 'Kijiji', 'Friends/Family', "Brittany's Instagram page", "Brittany's Facebook page", 'Other']
+var brittany = []
 
 class Finalconfirm extends React.Component {
     constructor(props) {
@@ -17,10 +18,37 @@ class Finalconfirm extends React.Component {
         this.state = {
           yes_state: -1
         }
+        brittany = ['Fro', 'Kijiji', 'Friends/Family', this.props.stylist_name.split(' ')[0]+"'s Instagram page", this.props.stylist_name.split(' ')[0]+"'s Facebook page", 'Other']
     }
 
     componentDidMount() {
 
+    }
+
+    _registerBook() {
+      let data = {
+        "stylist_id" : this.props.stylist_id,
+        "service_id" : this.props.service.serviceId,
+        "stylist_name": this.props.stylist_name,
+        "options": {
+          "size": this.props.options.size,
+          "length": this.props.options.length
+        },
+        "startDataTime": this.props.startDataTime,
+        "price": this.props.price,
+        "travelType": this.props.travelType,
+        "coupon": this.props.coupon,
+        "message":this.props.message, 
+        "payment": this.props.payment, 
+        "duration": this.props.duration, 
+        "location": this.props.location,
+        "discoverProvider": brittany[this.state.yes_state],
+        "status": this.state.answer
+      }
+      this.props.saveBook(this.props.auth.token, data).then(()=>{
+        NavigationActions.enjoy()
+      })
+      
     }
 
     render() {
@@ -35,8 +63,8 @@ class Finalconfirm extends React.Component {
 
             <ScrollView>
               <View style={{width: width, height: 100, alignItems: 'center', justifyContent: 'center'}}>
-                <Text style={{fontSize: 14, fontFamily: 'Montserrat', textAlign: 'center'}}>Is this your first time booking Brittany?</Text>
-                <Text style={{fontSize: 14, fontFamily: 'Montserrat', textAlign: 'center', marginTop: 10}}>Your answer helps Brittany prepare for your appointment.</Text>
+                <Text style={{fontSize: 14, fontFamily: 'Montserrat', textAlign: 'center'}}>Is this your first time booking {this.props.stylist_name.split(' ')[0]}?</Text>
+                <Text style={{fontSize: 14, fontFamily: 'Montserrat', textAlign: 'center', marginTop: 10}}>Your answer helps {this.props.stylist_name.split(' ')[0]} prepare for your appointment.</Text>
               </View>
               <View style={{flexDirection: 'row', width: width, alignItems: 'center', justifyContent: 'center'}}>
                 <TouchableOpacity style={this.state.answer == 0 ? [styles.answer_view, {backgroundColor: '#63b7b7'}] : styles.answer_view} onPress={() => this.setState({answer: 0})}>
@@ -50,7 +78,7 @@ class Finalconfirm extends React.Component {
               {
                 this.state.answer == 0 ? (
                   <View style={{width: width-40, alignSelf: 'center', alignItems: 'center'}}>
-                    <Text style={{height: 40, fontSize: 14, fontFamily: 'Montserrat', textAlign: 'center', marginTop: 20}}>How did you hear about Brittany?</Text>
+                    <Text style={{height: 40, fontSize: 14, fontFamily: 'Montserrat', textAlign: 'center', marginTop: 20}}>How did you hear about {this.props.stylist_name.split(' ')[0]}?</Text>
                     {
                       brittany.map((brit, i) =>
                         <TouchableOpacity key={i} style={this.state.yes_state == i ? [styles.yes_view, {backgroundColor: '#63b7b7'}] : styles.yes_view} onPress={() => this.setState({yes_state: i})}>
@@ -65,7 +93,7 @@ class Finalconfirm extends React.Component {
 
             {
               this.state.answer == 1 || this.state.yes_state != -1 ? (
-                <TouchableOpacity style={styles.sBtn_view} onPress={NavigationActions.enjoy}>
+                <TouchableOpacity style={styles.sBtn_view} onPress={()=>this._registerBook()}>
                   <Text style={styles.loginBtntext}>Complete Booking</Text>
                 </TouchableOpacity>
               ) : (
@@ -137,16 +165,14 @@ const styles = StyleSheet.create({
 });
 
 const mapStateToProps = (state) => {
-    const props = {
-
-    };
-    return props;
+  const {api} = state;
+  const { auth } = state;
+  
+  return {auth, api};
 };
 
 const mapDispatchToProps = (dispatch) => {
-    return {
-
-    }
+    return bindActionCreators(ActionCreators, dispatch);
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Finalconfirm)

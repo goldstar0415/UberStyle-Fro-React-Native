@@ -29,6 +29,12 @@ const service = (state=initialState, action) => {
               isSelected3: false,
             }
 
+        case 'SET_FILTER':
+            return {
+                ...state,
+                filters: action.filter
+            }
+
         default:
             return state
     }

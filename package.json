@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "babel-preset-expo": "^2.0.0",
+    "dateformat": "^2.0.0",
     "get-substring-by-range": "^1.0.0",
     "radio-button-react-native": "^1.1.6",
     "react": "15.4.2",

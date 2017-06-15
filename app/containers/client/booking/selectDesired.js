@@ -10,6 +10,11 @@ import Modal from 'react-native-modalbox';
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
 
+const time = ['15 m', '30 m', '45 m','1 h', '1 h 15 m', '1 h 30 m', '1 h 45 m', '2 h', '2 h 15 m', '2 h 30 m', '2 h 45 m', '3 h',
+              '3 h 15 m', '3 h 30 m', '3 h 45 m', '4 h', '4 h 15 m', '4 h 30 m', '4 h 45 m', '5 h', '5 h 15 m', '5 h 30 m', '5 h 45 m', 
+              '6 h', '6 h 15 m', '6 h 30 m', '6 h 45 m', '7 h', '7 h 15 m', '7 h 30 m', '7 h 45 m', '8 h', '8 h 15 m', '8 h 30 m', 
+              '8 h 45 m', '9 h', '9 h 15 m', '9 h 30 m', '9 h 45 m',  '10 h']
+
 class Selectdesired extends React.Component {
     constructor(props) {
         super(props);
@@ -24,6 +29,22 @@ class Selectdesired extends React.Component {
 
     }
 
+    _goToSelectDate() {
+      let data = {
+        "stylist_id" : this.props.stylist_id,
+        "service" : this.props.service,
+        "stylist_name": this.props.stylist_name,
+        "ability": this.props.ability,
+        "options": {
+          "size": this.state.size,
+          "length": this.state.length
+        },
+        "duration":time[this.props.service.duration],
+        "travelType":this.props.travelType,
+        "travelCost": this.props.travelCost
+      }
+      NavigationActions.selectDate(data)
+    }
 
     render() {
         return (
@@ -32,7 +53,7 @@ class Selectdesired extends React.Component {
               <TouchableOpacity  style={{position: 'absolute', left: 15, top: Platform.OS === 'ios' ? 35 : 15}} onPress={NavigationActions.pop}>
                 <Image source={require('../../../img/back_white.png')}  style={{width: 12,height: 12}}/>
               </TouchableOpacity>
-              <Text style={{fontSize: 16, fontFamily: 'Montserrat', color: 'white', textAlign: 'center', marginTop: Platform.OS === 'ios' ? 15 : 0}}>Single Braids</Text>
+              <Text style={{fontSize: 16, fontFamily: 'Montserrat', color: 'white', textAlign: 'center', marginTop: Platform.OS === 'ios' ? 15 : 0}}>{this.props.service.name}</Text>
             </View>
             <ScrollView>
               <View style={{flexDirection: 'row', width: width, alignItems: 'center', justifyContent: 'center', marginTop: 20}}>
@@ -85,8 +106,8 @@ class Selectdesired extends React.Component {
               </View>
               <View style={{width: width, height: 1, borderBottomWidth: 1, borderColor: '#d3d3d3', marginTop: 30}}/>
             </ScrollView>
-            <TouchableOpacity style={styles.sBtn_view} onPress={NavigationActions.selectDate}>
-              <Text style={styles.loginBtntext}>$280 • 2h</Text>
+            <TouchableOpacity style={styles.sBtn_view} onPress={()=>this._goToSelectDate()}>
+              <Text style={styles.loginBtntext}>{this.props.service.price + '•' + time[this.props.service.duration]}</Text>
             </TouchableOpacity>
 
             <Modal isOpen={this.state.size_open} onClosed={() => this.setState({size_open: false})} style={styles.modal} position={"top"} swipeToClose={false}>

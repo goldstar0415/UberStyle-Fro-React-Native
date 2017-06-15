@@ -4,6 +4,9 @@ import Button from 'react-native-button';
 import { Actions as NavigationActions } from 'react-native-router-flux'
 
 import { connect } from 'react-redux'
+import { bindActionCreators } from 'redux';
+import { ActionCreators } from '../../../actions';
+
 import Modal from 'react-native-modalbox';
 
 import MapView from 'react-native-maps';
@@ -46,7 +49,7 @@ class Details extends React.Component {
     }
 
     getGeolocation(){
-      Geocoder.geocodePosition({lat: this.props.location.latitude, lng: this.props.location.longitude}).then(res => {
+      Geocoder.geocodePosition({lat: (this.props.location)?this.props.location.latitude:37.78565, lng: (this.props.location)?this.props.location.longitude:-122.4124}).then(res => {
         this.setState({location: res[0].formattedAddress})
       })
       .catch(err => console.log(err))
@@ -66,6 +69,12 @@ class Details extends React.Component {
       this.setState({sub_open: false, cancel_state: value})
     }
 
+    _cancelAppointment() {
+      this.props.cancelAppointment(this.props.auth.token, this.props._id, cancel_options[this.state.cancel_state].label, this.state.description).then(()=>{
+        NavigationActions.pop();
+      })
+    }
+
     renderRow (rowData) {
       return (
         <TouchableOpacity  onPress={() => this.cancelPress(rowData.value)} >
@@ -79,6 +88,10 @@ class Details extends React.Component {
       )
     }
 
+    _getDateStr(date) {
+      var dateFormat = require('dateformat');
+      return dateFormat(date, "ddd, mmm d, yyyy • h:MM TT");
+    }
 
     render() {
         return (
@@ -90,15 +103,15 @@ class Details extends React.Component {
                   <TouchableOpacity onPress={NavigationActions.pop}>
                     <Image source={require('../../../img/close-button.png')}  style={{marginTop: 10,width: 10,height: 10}}/>
                   </TouchableOpacity>
-                  <Text style={{fontFamily: 'Montserrat', fontSize: 26, marginTop: 20}}>Crochet Braids</Text>
-                  <Text style={{fontFamily: 'Montserrat', fontSize: 14}}>{this.props.availabilaty}{'\n'}Pending</Text>
+                  <Text style={{fontFamily: 'Montserrat', fontSize: 26, marginTop: 20}}>{this.props.service.name}</Text>
+                  <Text style={{fontFamily: 'Montserrat', fontSize: 14}}>{this._getDateStr(new Date(this.props.startDatetime))}{'\n'}{this.props.status}</Text>
                 </View>
 
                 <View style={{flexDirection: 'row', width: width - 40, height: 80, alignItems: 'center', borderBottomWidth: 0.2}}>
-                  <Image source={this.props.icon} style={styles.profile}/>
+                  <Image source={(this.props.icon)?this.props.icon:require('../../../img/stylist.png')} style={styles.profile}/>
                   <View style={styles.review_view}>
-                    <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 14}}>{this.props.name}</Text>
-                    <Image source={stars[this.props.star]} style={styles.rating_star}/>
+                    <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 14}}>{this.props.provider.name}</Text>
+                    <Image source={(this.props.star)?stars[this.props.star]:stars[4.5]} style={styles.rating_star}/>
                   </View>
                 </View>
 
@@ -124,25 +137,25 @@ class Details extends React.Component {
                 </View>
 
                 <MapView
-                  initialRegion={{latitude: this.props.location.latitude, longitude: this.props.location.longitude, latitudeDelta: 0.0032, longitudeDelta: 0.0021}}
+                  initialRegion={{latitude: (this.props.location)?this.props.location.latitude:37.78565, longitude: (this.props.location)?this.props.location.longitude:-122.4124, latitudeDelta: 0.0032, longitudeDelta: 0.0021}}
                   style = {{width: width, height: 230, alignSelf: 'center', marginTop: 10}}
                 >
                   <MapView.Marker
                     image={marker_img}
-                    coordinate={this.props.location}
+                    coordinate={(this.props.location)?this.props.location:{latitude: 37.78565, longitude: -122.4124}}
                   />
                 </MapView>
 
                 <View style={styles.bottom_view}>
                   <Text style={styles.left_text}>{this.state.location}</Text>
-                  <TouchableOpacity style={{position: 'absolute', right: 0}} onPress={() => Linking.openURL(`http://maps.google.com/maps?q=${this.props.location.latitude},${this.props.location.longitude}`)}>
+                  <TouchableOpacity style={{position: 'absolute', right: 0}} onPress={() => Linking.openURL(`http://maps.google.com/maps?q=${(this.props.location)?this.props.location.latitude:37.78565},${(this.props.location)?this.props.location.longitude:-122.4124}`)}>
                     <Text style={styles.right_text}>Open in...</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={styles.bottom_view}>
                   <Text style={styles.left_text}>Total Cost</Text>
                   <TouchableOpacity style={{position: 'absolute', right: 0}}>
-                    <Text style={styles.right_text}>$423 CAD</Text>
+                    <Text style={styles.right_text}>${this.props.price}</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={styles.bottom_view}>
@@ -165,7 +178,7 @@ class Details extends React.Component {
                   <Text style={{fontFamily: 'Montserrat', fontSize: 18, marginLeft: 10}}>{cancel_options[this.state.cancel_state].label}</Text>
                   <Image source={require('../../../img/down_aroow.png')}  style={{width: 16,height: 12, position: 'absolute', right: 10}} resizeMode={'contain'}/>
                 </TouchableOpacity>
-                <Text style={{fontFamily: 'Montserrat', fontSize: 18, marginTop: 40}}>Include a message for David</Text>
+                <Text style={{fontFamily: 'Montserrat', fontSize: 18, marginTop: 40}}>Include a message for {this.props.provider.name.split(' ')[0]}</Text>
                 <TextInput
                   style={styles.textinput_about}
                   multiline = {true}
@@ -174,7 +187,7 @@ class Details extends React.Component {
                   onChange={this.setDescription.bind(this)}
                 />
               </View>
-              <TouchableOpacity style={styles.sBtn_view} onPress={NavigationActions.pop}>
+              <TouchableOpacity style={styles.sBtn_view} onPress={()=>this._cancelAppointment()}>
                 <Text style={styles.loginBtntext}>Cancel Appointment</Text>
               </TouchableOpacity>
             </Modal>
@@ -281,16 +294,14 @@ const styles = StyleSheet.create({
 
 
 const mapStateToProps = (state) => {
-    const props = {
-
-    };
-    return props;
+  const {api} = state;
+  const { auth } = state;
+  
+  return {auth, api};
 };
 
 const mapDispatchToProps = (dispatch) => {
-    return {
-
-    }
+    return bindActionCreators(ActionCreators, dispatch);
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Details)

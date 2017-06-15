@@ -34,6 +34,10 @@ import ViewMoreText from 'react-native-view-more-text';
 
 import Share, {ShareSheet, Button} from 'react-native-share';
 
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import { ActionCreators } from '../../actions';
+
 const { width, height } = Dimensions.get('window')
 var idx
 
@@ -41,6 +45,8 @@ const ASPECT_RATIO = width / height;
 const LATITUDE_DELTA = 0.0922;
 const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 import marker_img from '../../img/marker.png';
+
+var parent_services = []
 
 const renderPagination = (index, total, context) => {
   var view = (<View style={{position: 'absolute',alignItems: 'center',left: 15,bottom: 35}}><Text style={{fontFamily: 'Montserrat', color: '#fff',fontSize: 14}}>{index + 1} / {total}</Text></View>)
@@ -81,31 +87,78 @@ class stylistProfile extends React.Component {
           showViewer: false,
           showIndex: 0,
           i: 2,
-          visible: false
+          visible: false,
+          name: '',
+          travelType: [],
+          business_hours:{},
+          services: [],
+          travelCost: '',
+          providerType: '',
+          social: {},
         }
     }
 
-    componentDidMount() {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          this.setState({
-            initialRegion: {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
+    _getStylist() {
+      const { auth } = this.props;
+      this.props.getStylist(auth.token, this.props.data).then(() => {
+        const { api } = this.props;
+        
+        this.setState({
+          name: (api.provider.name) ? api.provider.name : "",
+          travelCost: (api.provider.travelCost) ? api.provider.travelCost : "0",
+          travelType: (api.provider.travelType) ? api.provider.travelType : [],
+          services:(api.provider.services) ? this._parseResponse(api.provider.services): [],
+          description:(api.provider.description) ? api.provider.description: "",
+          social: (api.provider.social) ? api.provider.social: {},
+          business_hours: (api.provider.availability) ? api.provider.availability: {},
+          providerType: (api.provider.providerType) ? api.provider.providerType : "",
+          initialRegion: {
+              latitude: (api.provider.location && api.provider.location.address && api.provider.location.address.geoLocation.coordinates[1]) ? api.provider.location.address.geoLocation.coordinates[1] : 0,
+              longitude: (api.provider.location && api.provider.location.address && api.provider.location.address.geoLocation.coordinates[1]) ? api.provider.location.address.geoLocation.coordinates[0] : 0,
               latitudeDelta: LATITUDE_DELTA,
               longitudeDelta: LONGITUDE_DELTA
             },
-            error: null
-          });
-        },
-        (error) => this.setState({ error: error.message }),
-        { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 },
-      );
+        });
+      });
+    }
+
+    _findParent(id) {
+      for(var i=0; i<parent_services.length; i++) {
+        if (parent_services[i].id == id) return i
+      }
+      return -1
+    }
+
+    _parseResponse(response) {
+      parent_services = []
+      for(var i=0; i<response.length; i++) {
+        let parent_index = this._findParent(response[i].parent._id);
+        if (parent_index == -1) {
+          var new_parent = {}
+          new_parent["id"] = response[i].parent._id
+          new_parent["name"] = response[i].parent.name
+          new_parent["child"] = [response[i]]
+          new_parent["expand"] = true
+          new_parent["child_status"] = [[false]]
+          parent_services.push(new_parent)
+        } else {
+          var childs = parent_services[parent_index].child
+          childs.push(response[i])
+          var child_status = parent_services[parent_index].child_status
+          child_status.push(false)
+        }
+      }
+      return parent_services
+    }
+
+    componentDidMount() {
+      this._getStylist();
     }
 
     onCancel() {
       this.setState({visible:false});
     }
+
     onOpen() {
       this.setState({visible:true});
     }
@@ -115,6 +168,7 @@ class stylistProfile extends React.Component {
 				<Text style={styles.seemore_text} onPress={onPress}>See More</Text>
 			)
 		}
+
 		renderSeeLess(onPress){
 			return(
 				<Text style={styles.seemore_text} onPress={onPress}>See Less</Text>
@@ -126,10 +180,92 @@ class stylistProfile extends React.Component {
         showViewer: false,
       })
     }
+
     thumbPressHandle (i) {
       this.setState({
         showIndex: i,
         showViewer: true
+      })
+    }
+
+    _getFormatAMPM(minutes) {
+      var hours = Math.floor(minutes / 60);
+      minutes = minutes % 60;
+      var apm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12
+      hours = hours ? hours : 12;
+      minutes = minutes < 10 ? '0'+minutes : minutes;
+      var strTime = hours + ':' + minutes + ' ' + apm;
+      return strTime;
+    }
+
+    _getHours(duration) {
+      if (duration == undefined) {
+        return "Closed"
+      }
+      if (duration.open == 0 && duration.close == 0) {
+        return "Closed"
+      }
+      return this._getFormatAMPM(duration.open) + " - " + this._getFormatAMPM(duration.close);
+    }
+
+    _gotoFristStep(service) {
+      let data = {
+        "stylist_id" : this.props.api.provider._id,
+        "service" : service,
+        "stylist_name": this.state.name,
+        "ability": this.state.business_hours,
+        "travelType": this.state.travelType,
+        "travelCost": (this.state.travelCost)?parseInt(this.state.travelCost):0
+      }
+      if (service.andUp) {
+        NavigationActions.selectDesired(data)
+      } else {
+        NavigationActions.selectDate(data)
+      }
+    }
+
+    _getTravelTypeString() {
+      var str = ""
+      for (i=0; i<this.state.travelType.length; i++) {
+        if (str!="") {
+          str += " or "
+        }
+        switch (this.state.travelType[i]) {
+          case "Provider Home":
+            str += (str=="")?"I host at my home":"home"
+            break;
+          case "Salon":
+            str += (str=="")?"I host at my salon":"salon"
+            break;
+          default:
+            str += "I go to my client's place";
+        }
+      }
+      return str;
+    }
+
+    _gotoMessage() {
+      console.log(this.props.data)
+      console.log(this.props.api.provider._id)
+      if (this.props.data != this.props.api.provider._id) {
+        NavigationActions.message();
+      }
+    }
+
+    _updateState(index) {
+      var tmp = this.state.services
+      tmp[index].expand = !tmp[index].expand
+      this.setState({
+        services: tmp
+      })
+    }
+
+    _updateState(parent_index, child_index) {
+      var tmp = this.state.services
+      tmp[parent_index].child_status[child_index] = !tmp[parent_index].child_status[child_index]
+      this.setState({
+        services: tmp
       })
     }
 
@@ -182,74 +318,69 @@ class stylistProfile extends React.Component {
             <View style={{flexDirection:'row', height: 80, borderBottomWidth: 0.2}}>
               <View style={{flexDirection:'column', alignSelf: 'center', width:Dimensions.get('window').width}}>
                 <View style={{flexDirection:'row'}}>
-                  <Text style={{fontFamily: 'Montserrat', fontSize: 14, marginLeft: 20}}>Hairstyled by </Text><Text style={{fontSize: 14, color: '#f26c4f'}}>David</Text>
+                  <Text style={{fontFamily: 'Montserrat', fontSize: 14, marginLeft: 20}}>Hairstyled by </Text><Text style={{fontSize: 14, color: '#f26c4f'}}>{this.state.name}</Text>
                 </View>
-                <Text style={{fontFamily: 'Montserrat', fontSize: 12, marginLeft: 20, color: 'gray'}}>I host at my home</Text>
+                <Text style={{fontFamily: 'Montserrat', fontSize: 12, marginLeft: 20, color: 'gray'}}>{this._getTravelTypeString()}</Text>
               </View>
               <Image source={require('../../img/david.jpg')} style={styles.profile}/>
             </View>
-            <View style={{flexDirection:'row', height: 40, borderBottomWidth: 0.2}}>
-              <Text style={{fontFamily: 'Montserrat', fontSize: 14, alignSelf: 'center', width: Dimensions.get('window').width, textAlign: 'center'}}>Hair Color</Text>
-              <TouchableOpacity  style={{position: "absolute", right: 30, alignSelf: 'center'}}  onPress={() => {this.state.category = !this.state.category; this.setState({category:this.state.category})}}>
-                <Image source={this.state.category ? require('../../img/down_aroow.png') : require('../../img/up_arrow.png')} style={{width: 12, height: 8}}/>
-              </TouchableOpacity>
-            </View>
             {
-              this.state.category ? (
-                <View>
-                  <View style={{flexDirection:'row', width:Dimensions.get('window').width-40, alignSelf: 'center', height: 80}}>
-                    <View style={{flexDirection:'column', alignSelf: 'center', width:Dimensions.get('window').width}}>
-                      <Text style={{fontFamily: 'Montserrat', fontSize: 13}}>All over color</Text>
-                      <View style={styles.info_view}>
-                        <Text style={styles.info_text}>$120 and up for 150 minutes</Text>
-                        <TouchableOpacity  onPress={() => {this.state.color_info = !this.state.color_info; this.setState({color_info:this.state.color_info})}}>
-                          <Image source={require('../../img/info.png')} style={styles.info_img}/>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                    <TouchableOpacity style={styles.book_touch}  onPress={NavigationActions.firstStep}>
-                      <View style={styles.book_view}>
-                        <Text style={styles.book_text}>Book</Text>
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-                  {
-                    this.state.color_info ? (
-                      <View style={styles.expand_view}>
-                        <Text style={styles.expand_text}>Special event (party.prom.bridesmaid.corporate event)</Text>
-                      </View>
-                    ) : null
-                  }
-                  <View style={this.state.color_info ? styles.expand_line : styles.expand_line_empty}/>
-
-                  <View style={{flexDirection:'row', width:Dimensions.get('window').width-40, alignSelf: 'center', height: 80}}>
-                    <View style={{flexDirection:'column', alignSelf: 'center', width:Dimensions.get('window').width}}>
-                      <Text style={{fontFamily: 'Montserrat', fontSize: 13}}>Balayage</Text>
-                      <View style={styles.info_view}>
-                        <Text style={styles.info_text}>$175 and up for 240 minutes</Text>
-                        <TouchableOpacity  onPress={() => {this.state.balayage_info = !this.state.balayage_info; this.setState({balayage_info:this.state.balayage_info})}}>
-                          <Image source={require('../../img/info.png')} style={styles.info_img}/>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                    <TouchableOpacity style={styles.book_touch}  onPress={NavigationActions.firstStep}>
-                      <View style={styles.book_view}>
-                        <Text style={styles.book_text}>Book</Text>
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-                  {
-                    this.state.balayage_info ? (
-                      <View style={styles.expand_view}>
-                        <Text style={styles.expand_text}>Special event (party.prom.bridesmaid.corporate event)</Text>
-                      </View>
-                    ) : null
-                  }
-                  <View style={this.state.balayage_info ? styles.expand_line : styles.expand_line_empty}/>
+              this.state.services.length == 0 ? (
+                <View style={{flexDirection:'row', height: 40, borderBottomWidth: 0.2}}>
+                  <Text style={{fontFamily: 'Montserrat', fontSize: 14, alignSelf: 'center', width: Dimensions.get('window').width, textAlign: 'center'}}>
+                    No Registered Service
+                  </Text>
                 </View>
-              ) : null
-            }
+              ):(
+                this.state.services.map((service, i) =>
+                  <View style={{flexDirection:'row', height: 40, borderBottomWidth: 0.2}}>
+                    <Text style={{fontFamily: 'Montserrat', fontSize: 14, alignSelf: 'center', width: Dimensions.get('window').width, textAlign: 'center'}}>
+                      {service.name}
+                    </Text>
+                    <TouchableOpacity  style={{position: "absolute", right: 30, alignSelf: 'center'}}  onPress={() => {()=>this._updateState(i)}}>
+                      <Image source={service.expand ? require('../../img/down_aroow.png') : require('../../img/up_arrow.png')} style={{width: 12, height: 8}}/>
+                    </TouchableOpacity>
+                  </View>
+                  {
 
+                  }
+                  {/*service.expand ? (
+                        service.child.map((child, j)=>
+                          <View key={child.serviceId}>
+                            <View style={{flexDirection:'row', width:Dimensions.get('window').width-40, alignSelf: 'center', height: 80}}>
+                              <View style={{flexDirection:'column', alignSelf: 'center', width:Dimensions.get('window').width}}>
+                                <Text style={{fontFamily: 'Montserrat', fontSize: 13}}>{child.name}</Text>
+                                <View style={styles.info_view}>
+                                  <Text style={styles.info_text}>${child.price} and up for {(child.duration+1)*15} minutes</Text>
+                                  {
+                                    (child.description)?(
+                                      <TouchableOpacity  onPress={() => {this._updateInfo(i,j)}}>
+                                        <Image source={require('../../img/info.png')} style={styles.info_img}/>
+                                      </TouchableOpacity>
+                                    ):null
+                                  }
+                                </View>
+                              </View>
+                              <TouchableOpacity style={styles.book_touch}  onPress={()=>this._gotoFristStep(child)}>
+                                <View style={styles.book_view}>
+                                  <Text style={styles.book_text}>Book</Text>
+                                </View>
+                              </TouchableOpacity>
+                              {
+                                service.child_status[j] ? (
+                                  <View style={styles.expand_view}>
+                                    <Text style={styles.expand_text}>{service.description}</Text>
+                                  </View>
+                                ) : null
+                              }
+                              <View style={this.state.balayage_info ? styles.expand_line : styles.expand_line_empty}/>
+                            </View>
+                          </View>
+                        )
+                      ):null*/}
+                )
+              )
+            }
             <TouchableOpacity style={{flexDirection:'row', height: 120, borderBottomWidth: 0.2}} onPress={() => this.setState({m_open: true})}>
               <View style={styles.rating_view}>
                 <Text style={{fontFamily: 'Montserrat', fontSize: 40, fontWeight: '100'}}>4.5</Text>
@@ -283,8 +414,8 @@ class stylistProfile extends React.Component {
               </TouchableOpacity>
             </View>
             <View style={styles.contact_view}>
-              <Text style={styles.contact_text}>Contact David</Text>
-              <TouchableOpacity  style={styles.contact_touch}  onPress={NavigationActions.message}>
+              <Text style={styles.contact_text}>Contact {this.state.name}</Text>
+              <TouchableOpacity  style={styles.contact_touch}  onPress={()=>this._gotoMessage()}>
                 <Text style={{fontFamily: 'Montserrat', fontSize: 14, color: '#f26c4f'}}>Message</Text>
               </TouchableOpacity>
             </View>
@@ -309,7 +440,7 @@ class stylistProfile extends React.Component {
       			    renderViewMore={this.renderSeeMore}
       			    renderViewLess={this.renderSeeLess}>
       			    <Text style={styles.detail_text}>
-      			      Stylist at Lexiington place in San Fransisco. I have 7 years of experience and I am currently taking new clients! I would love to see you in my chair! * All
+      			      {this.state.description}
       			    </Text>
       			  </ViewMoreText>
             </View>
@@ -319,31 +450,31 @@ class stylistProfile extends React.Component {
               <Text style={{fontFamily: 'Montserrat', fontSize: 14, textAlign: 'left', marginLeft: 20, marginBottom: 10}}>Business Hours</Text>
               <View style={styles.day_view}>
                 <Text style={styles.day_text}>Sunday:</Text>
-                <Text style={styles.time_text}>Closed</Text>
+                <Text style={styles.time_text}>{this._getHours(this.state.business_hours.sun)}</Text>
               </View>
               <View style={styles.day_view}>
                 <Text style={styles.day_text}>Monday:</Text>
-                <Text style={styles.time_text}>Closed</Text>
+                <Text style={styles.time_text}>{this._getHours(this.state.business_hours.mon)}</Text>
               </View>
               <View style={styles.day_view}>
                 <Text style={styles.day_text}>Tuesday:</Text>
-                <Text style={styles.time_text}>10:00 AM - 8:00 PM</Text>
+                <Text style={styles.time_text}>{this._getHours(this.state.business_hours.thu)}</Text>
               </View>
               <View style={styles.day_view}>
                 <Text style={styles.day_text}>Wednesday:</Text>
-                <Text style={styles.time_text}>10:00 AM - 8:00 PM</Text>
+                <Text style={styles.time_text}>{this._getHours(this.state.business_hours.wed)}</Text>
               </View>
               <View style={styles.day_view}>
                 <Text style={styles.day_text}>Thursday:</Text>
-                <Text style={styles.time_text}>10:00 AM - 8:00 PM</Text>
+                <Text style={styles.time_text}>{this._getHours(this.state.business_hours.tue)}</Text>
               </View>
               <View style={styles.day_view}>
                 <Text style={styles.day_text}>Friday:</Text>
-                <Text style={styles.time_text}>10:00 AM - 8:00 PM</Text>
+                <Text style={styles.time_text}>{this._getHours(this.state.business_hours.fri)}</Text>
               </View>
               <View style={styles.day_view}>
                 <Text style={styles.day_text}>Saturday:</Text>
-                <Text style={styles.time_text}>10:00 AM - 6:00 PM</Text>
+                <Text style={styles.time_text}>{this._getHours(this.state.business_hours.sat)}</Text>
               </View>
             </View>
 
@@ -667,6 +798,17 @@ const styles = StyleSheet.create({
   },
 });
 
+const mapStateToProps = (state) => {
+  const {api} = state;
+  const { auth } = state;
+  
+  return {auth, api};
+};
+
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators(ActionCreators, dispatch);
+}
+
 //  twitter icon
 const TWITTER_ICON = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAMAAAANIilAAAABvFBMVEUAAAAA//8AnuwAnOsAneoAm+oAm+oAm+oAm+oAm+kAnuwAmf8An+0AqtUAku0AnesAm+oAm+oAnesAqv8An+oAnuoAneoAnOkAmOoAm+oAm+oAn98AnOoAm+oAm+oAmuoAm+oAmekAnOsAm+sAmeYAnusAm+oAnOoAme0AnOoAnesAp+0Av/8Am+oAm+sAmuoAn+oAm+oAnOoAgP8Am+sAm+oAmuoAm+oAmusAmucAnOwAm+oAmusAm+oAm+oAm+kAmusAougAnOsAmukAn+wAm+sAnesAmeoAnekAmewAm+oAnOkAl+cAm+oAm+oAmukAn+sAmukAn+0Am+oAmOoAmesAm+oAm+oAm+kAme4AmesAm+oAjuMAmusAmuwAm+kAm+oAmuoAsesAm+0Am+oAneoAm+wAmusAm+oAm+oAm+gAnewAm+oAle0Am+oAm+oAmeYAmeoAmukAoOcAmuoAm+oAm+wAmuoAneoAnOkAgP8Am+oAm+oAn+8An+wAmusAnuwAs+YAmegAm+oAm+oAm+oAmuwAm+oAm+kAnesAmuoAmukAm+sAnukAnusAm+oAmuoAnOsAmukAqv9m+G5fAAAAlHRSTlMAAUSj3/v625IuNwVVBg6Z//J1Axhft5ol9ZEIrP7P8eIjZJcKdOU+RoO0HQTjtblK3VUCM/dg/a8rXesm9vSkTAtnaJ/gom5GKGNdINz4U1hRRdc+gPDm+R5L0wnQnUXzVg04uoVSW6HuIZGFHd7WFDxHK7P8eIbFsQRhrhBQtJAKN0prnKLvjBowjn8igenQfkQGdD8A7wAAAXRJREFUSMdjYBgFo2AUDCXAyMTMwsrGzsEJ5nBx41HKw4smwMfPKgAGgkLCIqJi4nj0SkhKoRotLSMAA7Jy8gIKing0KwkIKKsgC6gKIAM1dREN3Jo1gSq0tBF8HV1kvax6+moG+DULGBoZw/gmAqjA1Ay/s4HA3MISyrdC1WtthC9ebGwhquzsHRxBfCdUzc74Y9UFrtDVzd3D0wtVszd+zT6+KKr9UDX749UbEBgULIAbhODVHCoQFo5bb0QkXs1RAvhAtDFezTGx+DTHEchD8Ql4NCcSyoGJYTj1siQRzL/JKeY4NKcSzvxp6RmSWPVmZhHWnI3L1TlEFDu5edj15hcQU2gVqmHTa1pEXJFXXFKKqbmM2ALTuLC8Ak1vZRXRxa1xtS6q3ppaYrXG1NWjai1taCRCG6dJU3NLqy+ak10DGImx07LNFCOk2js6iXVyVzcLai7s6SWlbnIs6rOIbi8ViOifIDNx0uTRynoUjIIRAgALIFStaR5YjgAAAABJRU5ErkJggg==";
 
@@ -688,4 +830,4 @@ const CLIPBOARD_ICON = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CA
 //  more icon
 const MORE_ICON = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAMAAAANIilAAAAAQlBMVEUAAABEREQ9PT0/Pz8/Pz9AQEA7OzszMzM/Pz8/Pz9FRUU/Pz8/Pz9VVVUAAAA/Pz8+Pj4/Pz8/Pz9BQUFAQEA/Pz+e9yGtAAAAFnRSTlMAD5bv9KgaFJ/yGv+zAwGltPH9LyD5QNQoVwAAAF5JREFUSMft0EkKwCAQRFHHqEnUON3/qkmDuHMlZlVv95GCRsYAAAD+xYVU+hhprHPWjDy1koJPx+L63L5XiJQx9PQPpZiOEz3n0qs2ylZ7lkyZ9oyXzl76MAAAgD1eJM8FMZg0rF4AAAAASUVORK5CYII=";
 
-export default stylistProfile;
+export default connect(mapStateToProps, mapDispatchToProps)(stylistProfile);

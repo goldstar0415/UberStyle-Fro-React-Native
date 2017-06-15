@@ -13,11 +13,11 @@ var {GooglePlacesAutocomplete} = require('react-native-google-places-autocomplet
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
 
-const services = [
-  {label: "Hairstylist's Home", value: 0 },
-  {label: "Hairstylist's Salon", value: 1 },
-  {label: 'My Place (20$ travel fee)', value: 2 }
-]
+const size = ["Micro", "Small", "Medium", "Large", "Jumbo"]
+const length = [10, 12 ,18, 22, 28]
+const full_monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+const services = []
 
 class Finalstep extends React.Component {
     constructor(props) {
@@ -37,12 +37,29 @@ class Finalstep extends React.Component {
           country: null,
           locality: null,
           area: null,
-          geo_value: ''
+          geo_value: '',
+          coupon: '',
+          message: '',
         }
     }
 
-    componentDidMount() {
+    _configServices(){
+      const rowHasChanged = (r1, r2) => r1 !== r2
+      const ds = new ListView.DataSource({rowHasChanged})
+      services = []
+      for (var i=0; i<this.props.travelType.length; i++) {
+        services.push({
+          label: this.props.travelType[i],
+          value: i
+        })
+      }
+      this.setState({
+        dataSource: ds.cloneWithRows(services)
+      })
+    }
 
+    componentWillMount() {
+      this._configServices()
     }
 
     setGeolocation(data, details) {
@@ -84,6 +101,44 @@ class Finalstep extends React.Component {
       this.setState({sub_open: false, service: value})
     }
 
+    setCoupon(event) {
+      let coupon = event.nativeEvent.text;
+      this.setState({coupon})
+    }
+
+    setMessage(event) {
+      let message = event.nativeEvent.text;
+      this.setState({message})
+    }
+
+    _goFinalConfirm() {
+      let data = {
+        "stylist_id" : this.props.stylist_id,
+        "service" : this.props.service,
+        "stylist_name": this.props.stylist_name,
+        "options": {
+          "size": this.props.options.size,
+          "length": this.props.options.length
+        },
+        "startDataTime": new Date(this.props.day + " 2017 " + this.props.startTime),
+        "price": this.props.service.price,
+        "travelType": ["Client"],
+        "coupon": this.state.coupon,
+        "message":this.state.message, 
+        "payment": "Cash",
+        "duration": (this.props.service.duration+1)*15,
+        "location": this.state.position
+      }
+      NavigationActions.finalConfirm(data)
+    }
+
+    _getDay() {
+      console.log(this.props)
+      var date = new Date(this.props.day + " 2017")
+      console.log(date)
+      return full_monthNames[date.getMonth()] + " " + date.getDate().toString()
+    }
+
     renderRow (rowData) {
       return (
         <TouchableOpacity  onPress={() => this.servicePress(rowData.value)} >
@@ -110,8 +165,8 @@ class Finalstep extends React.Component {
               <View style={{width: width-60, alignSelf: 'center'}}>
                 <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 30}}>
                   <View style={{flexDirection: 'column'}}>
-                    <Text style={{fontSize: 18, fontFamily: 'Montserrat', textAlign: 'left'}}>Goddess Locs - Medium 12</Text>
-                    <Text style={{fontSize: 14, fontFamily: 'Montserrat', textAlign: 'left'}}>Feb 9, 11:00 AM - 30m{'\n'}John Doe</Text>
+                    <Text style={{fontSize: 18, fontFamily: 'Montserrat', textAlign: 'left'}}>{this.props.service.name} - {size[this.props.options.size]} {length[this.props.options.length]}</Text>
+                    <Text style={{fontSize: 14, fontFamily: 'Montserrat', textAlign: 'left'}}>{this._getDay()}, {this.props.startTime} - {this.props.duration+'\n'+this.props.stylist_name}</Text>
                   </View>
                   <Image source={require('../../../img/david.jpg')} style={styles.profile}/>
                 </View>
@@ -122,7 +177,7 @@ class Finalstep extends React.Component {
                   <Image source={require('../../../img/down-arrow.png')}  style={{width: 12,height: 12, position: 'absolute', right: 20}}/>
                 </TouchableOpacity>
                 {
-                  this.state.service == 2 ? (
+                  services[this.state.service].label == "Client" ? (
                     <View style={{width: width-60, height: 50, backgroundColor: 'white', zIndex: 1}}>
                       <View style={{width: width-90, height: 1, backgroundColor: '#d3d3d3', alignSelf: 'center'}}/>
                       <View  style={{width: width-60, height: 50, alignSelf: 'center'}}>
@@ -192,11 +247,12 @@ class Finalstep extends React.Component {
                 <View style={{width: width-60, height: 100, backgroundColor: 'white', marginTop: 10}}>
                   <View style={{flexDirection: 'row', width: width-90, height: 50, alignSelf: 'center', borderBottomWidth: 1, borderColor: '#d3d3d3', alignItems: 'center'}}>
                     <Text style={{fontSize: 16, fontFamily: 'Montserrat', textAlign: 'left'}}>Total</Text>
-                    <Text style={{fontSize: 16, fontFamily: 'Montserrat', textAlign: 'right', color: '#63c174', position: 'absolute', right: 0}}>{this.state.service == 2 ? '$200' : '$180'}</Text>
+                    <Text style={{fontSize: 16, fontFamily: 'Montserrat', textAlign: 'right', color: '#63c174', position: 'absolute', right: 0}}>{services[this.state.service].label == "Client" ? '$'+(this.props.service.price+this.props.travelCost) : '$'+this.props.service.price}</Text>
                   </View>
                   <TextInput
                     style={{width: width-90, height: 50, fontSize: 16, fontFamily: 'Montserrat', textAlign: 'left', alignSelf: 'center'}}
                     placeholder='Have a coupon code?'
+                    onChange={this.setCoupon.bind(this)}
                   />
                 </View>
 
@@ -212,10 +268,11 @@ class Finalstep extends React.Component {
                   style={{width: width-60, height: 100, fontSize: 14, fontFamily: 'Montserrat', textAlign: 'center', backgroundColor: 'white', marginTop: 10, padding: 10, marginBottom: 50}}
                   multiline = {true}
                   placeholder='Share details about your hair, the style your want to do or ask a question.'
+                  onChange={this.setMessage.bind(this)}
                 />
 
               </View>
-              <TouchableOpacity style={styles.sBtn_view} onPress={NavigationActions.finalConfirm}>
+              <TouchableOpacity style={styles.sBtn_view} onPress={()=>this._goFinalConfirm()}>
                 <Text style={styles.loginBtntext}>Book Now</Text>
               </TouchableOpacity>
             </ScrollView>

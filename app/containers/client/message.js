@@ -3,6 +3,9 @@ import {PropTypes} from "react";
 import {StyleSheet, Text, View, ScrollView, ListView, Image,TextInput, TouchableOpacity, Dimensions, TouchableHighlight, KeyboardAvoidingView, Platform} from "react-native";
 import Button from 'react-native-button';
 import { Actions as NavigationActions } from 'react-native-router-flux'
+import { ActionCreators } from '../../actions';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux'
 
 import Modal from 'react-native-modalbox';
 import ImagePicker from 'react-native-image-crop-picker';
@@ -33,17 +36,77 @@ class Message extends React.Component {
           image: '',
         };
     }
-    componentDidMount(){
-      this.setState({
-        category_dataSource: this.state.category_dataSource.cloneWithRows(this.state.category_data)
-      })
+
+    componentDidMount() {
+      this._getParentSerivces()
+    }
+
+    _getParentSerivces() {
+      this.props.getParentServices().then(() => {
+        const { api } = this.props
+        category_data = []
+        category = []
+        category = api.service
+        category.sort( function( a, b ) {
+          a = a.name.toLowerCase();
+          b = b.name.toLowerCase();
+
+          return a < b ? -1 : a > b ? 1 : 0;
+        });
+
+        for (i=0;i<category.length;i++) {
+          category_data.push({
+            value: category[i].name,
+            id: category[i]._id,
+            isSelect: false
+          })
+        }
+        this.setState({
+          category_data: category_data
+        })
+        this.setState({
+          category_dataSource: this.state.category_dataSource.cloneWithRows(this.state.category_data)
+        })
+        
+        this.categoryPress(category_data[0], 0)
+
+      });
+    }
+
+    _getChildService(parent_id) {
+      this.props.getChildServices(parent_id).then(() => {
+        const { api } = this.props;
+        sub_category = []
+        for (i=0;i<api.childService.length;i++) {
+          sub_category.push({
+            value: api.childService[i].name,
+            id: api.childService[i]._id,
+            isSelect: false
+          })
+        }
+
+        sub_category.sort( function( a, b ) {
+          a = a.value.toLowerCase();
+          b = b.value.toLowerCase();
+
+          return a < b ? -1 : a > b ? 1 : 0;
+        });
+
+        this.setState({
+          sub_category_data: sub_category
+        })
+        this.setState({
+          sub_category_dataSource: this.state.sub_category_dataSource.cloneWithRows(this.state.sub_category_data)
+        })
+      });
     }
 
     _genRow(){
       category_data = []
-      for (var i = 0; i < category.length; i++){
+      for (i=0;i<category.length;i++) {
         category_data.push({
-          value: category[i],
+          value: category[i].name,
+          id: category[i]._id,
           isSelect: false
         })
       }
@@ -58,7 +121,11 @@ class Message extends React.Component {
       console.log(categoryClone);
       const rowHasChanged = (r1, r2) => r1 !== r2
       const ds = new ListView.DataSource({rowHasChanged})
-      this.setState({category_dataSource: ds.cloneWithRows(categoryClone), sub_category_dataSource: ds.cloneWithRows(sub_category)})
+      this.setState({
+        category_dataSource: ds.cloneWithRows(categoryClone),
+        category_selected: true
+      })
+      this._getChildService(rowData.id)
     }
 
     renderCategory (rowData: string , sectionID: number, rowID: number) {
@@ -137,7 +204,7 @@ class Message extends React.Component {
             <View style={{flexDirection:'row', alignSelf:  'center',width: Dimensions.get('window').width-40, height: 80, borderBottomWidth: 0.2}}>
               <View style={{flexDirection:'column', alignSelf: 'center'}}>
                 <Text style={{fontFamily: 'Montserrat', fontSize: 14}}>Your Message</Text>
-                <Text style={{fontFamily: 'Montserrat', fontSize: 12, marginTop: 5, width: Dimensions.get('window').width*2/3}} numberOfLines= {1}>{this.state.message == '' ? 'Beauty professtionals' : this.state.message}</Text>
+                <Text style={{fontFamily: 'Montserrat', fontSize: 12, marginTop: 5, width: Dimensions.get('window').width*2/3}} numberOfLines= {1}>{this.state.message == '' ? 'Tell me a bit more...' : this.state.message}</Text>
               </View>
               <TouchableOpacity  style={styles.edit_touch}  onPress={() => this.setState({m_open: true})}>
                 <Text style={styles.edit_text}>Change</Text>
@@ -335,5 +402,15 @@ const styles = StyleSheet.create({
   },
 });
 
+const mapStateToProps = (state) => {
+  const {api} = state;
+  const { auth } = state;
+  
+  return {auth, api};
+};
 
-export default Message;
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators(ActionCreators, dispatch)
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Message);

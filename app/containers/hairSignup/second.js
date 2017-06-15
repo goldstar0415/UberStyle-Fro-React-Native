@@ -69,6 +69,10 @@ export default class second extends React.Component{
     if(text.length == 14){this.setState({flagBtn:true})}else{this.setState({flagBtn:false})}
   }
 
+  _goToNextView(nextView, data) {
+    nextView(data);
+  }
+
   render(){
     return (
       <View style={styles.mainContainer}>
@@ -82,14 +86,16 @@ export default class second extends React.Component{
           <TouchableOpacity style={{marginTop: 5}} onPress={NavigationActions.pop}>
             <Image source={require('../../img/back_white.png')}  style={styles.backBtn}/>
           </TouchableOpacity>
-          <Text style={styles.text}>Hi Jennifer, which best{'\n'}describes you?</Text>
+          <Text style={styles.text}>Hi {this.props.first}, which best{'\n'}describes you?</Text>
         </View>
         <View style={{flexDirection:'column', height: height, backgroundColor: '#ffffff'}}>
-          <TouchableOpacity style={styles.view} onPress={NavigationActions.service}>
+          <TouchableOpacity style={styles.view} onPress={() => this._goToNextView(NavigationActions.service, {first: this.props.first, last: this.props.last,
+              email: this.props.email, password: this.props.password, phone: this.props.phone, provider: "Hair Stylist"})}>
             <Text style={styles.view_text}>Hair Stylist</Text>
             <Image source={require('../../img/right-arrow-black.png')}  style={{width: 18, height: 18, position: 'absolute', right: 15}} resizeMode={'contain'}/>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.view}>
+          <TouchableOpacity style={styles.view} onPress={() => this._goToNextView(NavigationActions.service, {first: this.props.first, last: this.props.last,
+              email: this.props.email, password: this.props.password, phone: this.props.phone, provider: "Makeup Artist"})}>
             <Text style={styles.view_text}>Makeup Artist</Text>
             <Image source={require('../../img/right-arrow-black.png')}  style={{width: 18, height: 18, position: 'absolute', right: 15}} resizeMode={'contain'}/>
           </TouchableOpacity>

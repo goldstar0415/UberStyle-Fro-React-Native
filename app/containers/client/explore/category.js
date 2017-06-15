@@ -3,12 +3,13 @@ import {PropTypes} from "react";
 import {StyleSheet, Text, View, ScrollView, Image, ListView, TouchableHighlight, TouchableOpacity, Dimensions, Animated} from "react-native";
 import Button from 'react-native-button';
 import { Actions as NavigationActions } from 'react-native-router-flux'
-
+import { bindActionCreators } from 'redux';
+import { setFilter, ActionCreators } from '../../../actions';
 import { connect } from 'react-redux'
 
-const category = ['All Hairstyles', 'Barber', 'Braids', 'Color', 'Locs', 'Twists']
-const sub_category = ['All Specialities', "Men's haircut", 'Line-Up', 'Haircut & Beard Trim', 'Fade', 'Taper', 'Clipper Haircut', 'Kids Braids']
-var category_data = [];
+const category = [];
+const sub_category = [];
+var category_data = {};
 
 class Category extends React.Component {
     constructor(props) {
@@ -18,7 +19,8 @@ class Category extends React.Component {
         const ds = new ListView.DataSource({rowHasChanged})
 
         this.state = {
-          category_data: this._genRow(),
+          category_data: [],
+          sub_category_data: [],
           category_dataSource: ds,
           sub_category_dataSource: ds,
           category_selected: false
@@ -26,16 +28,82 @@ class Category extends React.Component {
     }
 
     componentDidMount() {
-      this.setState({
-        category_dataSource: this.state.category_dataSource.cloneWithRows(this.state.category_data)
-      })
+      this._getParentSerivces()
+    }
+
+    _getParentSerivces() {
+      this.props.actions.getParentServices().then(() => {
+        const { api } = this.props
+        category_data = []
+        category = []
+        category = api.service
+        category.sort( function( a, b ) {
+          a = a.name.toLowerCase();
+          b = b.name.toLowerCase();
+
+          return a < b ? -1 : a > b ? 1 : 0;
+        });
+
+        for (i=0;i<category.length;i++) {
+          category_data.push({
+            value: category[i].name,
+            id: category[i]._id,
+            isSelect: false
+          })
+        }
+        this.setState({
+          category_data: category_data
+        })
+        this.setState({
+          category_dataSource: this.state.category_dataSource.cloneWithRows(this.state.category_data)
+        })
+        
+        this.categoryPress(category_data[0], 0)
+
+      });
+    }
+
+    _back(data) {
+      var filters = {}
+      filters["service"] = data
+      this.props.setFilter(filters)
+      NavigationActions.pop({refresh:{service: data}})
+    }
+
+    _getChildService(parent_id) {
+      this.props.actions.getChildServices(parent_id).then(() => {
+        const { api } = this.props;
+        sub_category = []
+        for (i=0;i<api.childService.length;i++) {
+          sub_category.push({
+            value: api.childService[i].name,
+            id: api.childService[i]._id,
+            isSelect: false
+          })
+        }
+
+        sub_category.sort( function( a, b ) {
+          a = a.value.toLowerCase();
+          b = b.value.toLowerCase();
+
+          return a < b ? -1 : a > b ? 1 : 0;
+        });
+
+        this.setState({
+          sub_category_data: sub_category
+        })
+        this.setState({
+          sub_category_dataSource: this.state.sub_category_dataSource.cloneWithRows(this.state.sub_category_data)
+        })
+      });
     }
 
     _genRow(){
       category_data = []
-      for (var i = 0; i < category.length; i++){
+      for (i=0;i<category.length;i++) {
         category_data.push({
-          value: category[i],
+          value: category[i].name,
+          id: category[i]._id,
           isSelect: false
         })
       }
@@ -50,7 +118,11 @@ class Category extends React.Component {
       console.log(categoryClone);
       const rowHasChanged = (r1, r2) => r1 !== r2
       const ds = new ListView.DataSource({rowHasChanged})
-      this.setState({category_dataSource: ds.cloneWithRows(categoryClone), sub_category_dataSource: ds.cloneWithRows(sub_category), category_selected: true})
+      this.setState({
+        category_dataSource: ds.cloneWithRows(categoryClone),
+        category_selected: true
+      })
+      this._getChildService(rowData.id)
     }
 
     renderCategory (rowData: string , sectionID: number, rowID: number) {
@@ -64,9 +136,9 @@ class Category extends React.Component {
     }
     renderSubCategory (rowData: string , sectionID: number, rowID: number) {
       return (
-        <TouchableHighlight  onPress={NavigationActions.pop} underlayColor='#f26c4f'>
+        <TouchableHighlight  onPress={()=>this._back(rowData)} underlayColor='#f26c4f'>
           <View style={styles.sub_category_view}>
-            <Text style={{fontFamily: 'Montserrat', fontSize: 14, alignSelf: 'center'}}>{rowData}</Text>
+            <Text style={{fontFamily: 'Montserrat', fontSize: 14, alignSelf: 'center'}}>{rowData.value}</Text>
           </View>
         </TouchableHighlight>
       )
@@ -142,5 +214,20 @@ const styles = StyleSheet.create({
 
 });
 
+const mapStateToProps = (state) => {
+  const {api} = state;
+  const { auth } = state;
+  
+  return {auth, api};
+};
 
-export default Category;
+function mapDispatchToProps(dispatch) {
+  return {
+    setFilter: (filter) => {
+        dispatch(setFilter(filter));
+    },
+    actions: bindActionCreators(ActionCreators, dispatch), 
+  }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Category);

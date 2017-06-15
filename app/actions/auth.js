@@ -78,16 +78,17 @@ export function registerFailure(error) {
 }
 
 export function registerClient(client){
+  console.log("----------------------")
+  console.log(client)
   return dispatch => {
     dispatch(registerRequest());
 
     return axios.post(`${REGISTER_URL}`, client )
     .then((response) => {
-      dispatch(loginSuccess(response.data.token, response.data.user))
+      dispatch(registerSuccess(response.data.token, response.data.user))
     })
     .catch((error) => {
       errorHandler(dispatch, error.response, REGISTER_FAILURE);
     });
   }
-  
 }

@@ -16,6 +16,10 @@ const height = Dimensions.get('window').height;
 import star from '../../img/star.png';
 import star_fill from '../../img/star_fill.png';
 
+import { connect } from 'react-redux'
+import { bindActionCreators } from 'redux';
+import {ActionCreators} from '../../actions';
+
 const recommend = [
   {label: "Yes", value: 0 },
   {label: "No", value: 1 }
@@ -52,6 +56,13 @@ class Review extends React.Component {
 
     cancelPress(value){
       this.setState({sub_open: false, r_state: value})
+    }
+
+    _submitReview() {
+      this.props.giveReview(this.props.auth.token, this.props.alert.id, this.state.message, 
+        this.state.r_state, this.state.cl_state, this.state.co_state, this.state.p_state, true).then(()=>{
+          NavigationActions.tabbar1()
+        })
     }
 
     renderRow (rowData) {
@@ -114,7 +125,7 @@ class Review extends React.Component {
                 </TouchableOpacity>
               </View>
             </ScrollView>
-            <TouchableOpacity onPress={NavigationActions.tabbar1}>
+            <TouchableOpacity onPress={()=>this._submitReview()}>
               <View style={styles.sBtn_view}>
                 <Text style={styles.loginBtntext}>Submit</Text>
               </View>
@@ -350,5 +361,14 @@ const styles = StyleSheet.create({
   },
 });
 
+const mapStateToProps = (state) => {
+  const {api} = state
+  const {auth} = state
+  return {api, auth};
+};
 
-export default Review;
+const mapDispatchToProps = (dispatch) => {
+    return bindActionCreators(ActionCreators, dispatch);
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Review)

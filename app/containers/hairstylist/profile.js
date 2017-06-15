@@ -3,6 +3,9 @@ import {PropTypes} from "react";
 import {StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, Dimensions} from "react-native";
 import Button from 'react-native-button';
 import { Actions as NavigationActions } from 'react-native-router-flux'
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import { ActionCreators } from '../../actions';
 
 class Profile extends React.Component {
     constructor(props) {
@@ -11,12 +14,18 @@ class Profile extends React.Component {
 
 
     render() {
+      const { auth } = this.props;
+      if (!auth.isAuthenticated) {
+        NavigationActions.login();
+      }
+      console.log(this.props);
+
         return (
           <View style={styles.container}>
             <ScrollView style={{flexDirection:'column', marginTop: 20 }}>
               <View style={{flexDirection:'row', height: 120, borderBottomWidth: 0.2}}>
                 <View style={{flexDirection:'column', alignSelf: 'center', width:Dimensions.get('window').width*2/3}}>
-                  <Text style={{fontFamily: 'Montserrat', fontSize: 24, marginLeft: 30}}>David</Text>
+                  <Text style={{fontFamily: 'Montserrat', fontSize: 24, marginLeft: 30}}>{auth.user.firstName}</Text>
                   <TouchableOpacity  onPress={NavigationActions.profileEdit}>
                     <Text style={{fontFamily: 'Montserrat', fontSize: 14, marginLeft: 30}}>View and edit profile</Text>
                   </TouchableOpacity>
@@ -94,5 +103,14 @@ const styles = StyleSheet.create({
   }
 });
 
+const mapStateToProps = (state) => {
+  const {auth} = state;
 
-export default Profile;
+  return {auth};
+};
+
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators(ActionCreators, dispatch);
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Profile)

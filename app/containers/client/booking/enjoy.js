@@ -11,7 +11,6 @@ const height = Dimensions.get('window').height;
 class Enjoy extends React.Component {
     constructor(props) {
         super(props);
-
         this.state = {
 
         }
@@ -34,9 +33,9 @@ class Enjoy extends React.Component {
               <Text style={{fontSize: 20, fontFamily: 'Montserrat', color: 'white', textAlign: 'center', fontWeight: 'bold', marginTop: 40}}>Enjoy your appointment!</Text>
               <Text style={{fontSize: 14, fontFamily: 'Montserrat', color: 'white', textAlign: 'center', marginTop: 10}}>You'll receive a confirmation email shortly.</Text>
               <Image source={require('../../../img/green_tick_turqoise.png')}  style={{width: 130,height: 130, marginTop: 50}}/>
-              <TouchableOpacity style={{width: 180, height: 45, backgroundColor: '#63b7b7', borderWidth: 1, borderColor: 'white', alignItems: 'center', justifyContent: 'center', marginTop: 50}}>
+              {/*<TouchableOpacity style={{width: 180, height: 45, backgroundColor: '#63b7b7', borderWidth: 1, borderColor: 'white', alignItems: 'center', justifyContent: 'center', marginTop: 50}}>
                 <Text style={{fontSize: 16, fontFamily: 'Montserrat', color: 'white', textAlign: 'center'}}>Add to calendar</Text>
-              </TouchableOpacity>
+              </TouchableOpacity>*/}
 
               <TouchableOpacity  style={{position: 'absolute', bottom: Platform.OS === 'ios' ? 90 : 70}} onPress={NavigationActions.tabbar1}>
                 <Image source={require('../../../img/close.png')}  style={{width: 40,height: 40}}/>
@@ -64,10 +63,10 @@ const styles = StyleSheet.create({
 });
 
 const mapStateToProps = (state) => {
-    const props = {
-
-    };
-    return props;
+  const {api} = state;
+  const { auth } = state;
+  
+  return {auth, api};
 };
 
 const mapDispatchToProps = (dispatch) => {

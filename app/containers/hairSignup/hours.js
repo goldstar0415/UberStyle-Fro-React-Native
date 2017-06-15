@@ -9,7 +9,8 @@ import {
     TouchableOpacity,
     ScrollView,
     Platform,
-    Dimensions
+    Dimensions,
+    AsyncStorage
 } from 'react-native';
 
 import { Actions as NavigationActions } from 'react-native-router-flux'
@@ -21,6 +22,9 @@ import Modal from 'react-native-modalbox';
 import { connect } from 'react-redux'
 
 import RadioButton from 'radio-button-react-native';
+
+import { ActionCreators } from '../../actions';
+import { bindActionCreators } from 'redux';
 
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
@@ -147,6 +151,89 @@ class hours extends React.Component{
         </View>
       </TouchableOpacity>
     )
+  }
+
+  _goToTabbar() {
+    let availability = {}
+    let mon = {}
+    let tue = {}
+    let wed = {}
+    let thu = {}
+    let fri = {}
+    let sat = {}
+    let sun = {}
+
+    if (this.state.checked1) {
+      mon = {"open": this.props.value0 * 30, "close": this.props.value1 * 30}
+    } else {
+      mon = {"open": 0, "close": 0}
+    }
+
+    if (this.state.checked2) {
+      tue = {"open": this.props.value2 * 30, "close": this.props.value3 * 30}
+    } else {
+      tue = {"open": 0, "close": 0}
+    }
+
+    if (this.state.checked3) {
+      wed = {"open": this.props.value4 * 30, "close": this.props.value5 * 30}
+    } else {
+      wed = {"open": 0, "close": 0}
+    }
+
+    if (this.state.checked4) {
+      thu = {"open": this.props.value6 * 30, "close": this.props.value7 * 30}
+    } else {
+      thu = {"open": 0, "close": 0}
+    }
+
+    if (this.state.checked5) {
+      fri = {"open": this.props.value8 * 30, "close": this.props.value9 * 30}
+    } else {
+      fri = {"open": 0, "close": 0}
+    }
+
+    if (this.state.checked6) {
+      sat = {"open": this.props.value10 * 30, "close": this.props.value11 * 30}
+    } else {
+      sat = {"open": 0, "close": 0}
+    }
+
+    if (this.state.checked7) {
+      sun = {"open": this.props.value12 * 30, "close": this.props.value13 * 30}
+    } else {
+      sun = {"open": 0, "close": 0}
+    }
+
+    availability = {"mon": mon, "tue": tue, "wed": wed, "thu": thu, "fri": fri, "sat": sat, "sun": sun}
+    let phone = this.props.phone.replace(/\D/g,'');
+
+    let user = {
+      password: this.props.password,
+      lastName: this.props.last,
+      firstName: this.props.first,
+      email: this.props.email,
+      role: 'Provider',
+      phoneNumber: phone,
+      providerType: this.props.provider,
+      travelType: this.props.travel,
+      travelCost: this.props.price,
+      availability: availability
+    }
+
+    this.props.auth.registerClient(user).then(() => {
+      const { authState } = this.props;
+      if (authState.isAuthenticated) {
+        AsyncStorage.setItem("about_state", '0');
+        AsyncStorage.setItem("photo_state", '0');
+        AsyncStorage.setItem("service_state", '0');
+        AsyncStorage.setItem("address_state", '0');
+        NavigationActions.tabbar();
+      } else {
+        console.log('error registering');
+        console.log(user);
+      }
+    });
   }
 
   render(){
@@ -519,11 +606,22 @@ class hours extends React.Component{
               </TouchableOpacity>
             </View>
           </View>
-          <TouchableOpacity style={{marginTop: 20}} onPress={NavigationActions.tabbar}>
-            <View style={styles.sBtn_view}>
-              <Text style={styles.loginBtntext}>Complete</Text>
-            </View>
-          </TouchableOpacity>
+          {
+            (!this.state.checked1 && !this.state.checked2 && !this.state.checked3 && !this.state.checked4 && !this.state.checked5 && !this.state.checked6 && !this.state.checked7) ? (
+              <TouchableOpacity style={{marginTop: 20}}>
+                <View style={styles.sBtn_view_gray}>
+                  <Text style={styles.loginBtntext}>Complete</Text>
+                </View>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={{marginTop: 20}} onPress={() => this._goToTabbar()}>
+                <View style={styles.sBtn_view}>
+                  <Text style={styles.loginBtntext}>Complete</Text>
+                </View>
+              </TouchableOpacity>
+            )
+          }
+          
         </ScrollView>
         <Modal isOpen={this.state.open} onClosed={() => this.setState({open: false})} style={styles.time_modal} position={"center"} swipeToClose={false} startOpen={false}>
           <View style={{flex:1}}>
@@ -540,25 +638,27 @@ class hours extends React.Component{
 }
 
 const mapStateToProps = (state) => {
-    const props = {
-        value0: state.hours.value0,
-        value1: state.hours.value1,
-        value2: state.hours.value2,
-        value3: state.hours.value3,
-        value4: state.hours.value4,
-        value5: state.hours.value5,
-        value6: state.hours.value6,
-        value7: state.hours.value7,
-        value8: state.hours.value8,
-        value9: state.hours.value9,
-        value10: state.hours.value10,
-        value11: state.hours.value11,
-        value12: state.hours.value12,
-        value13: state.hours.value13,
-    };
-
-    return props;
+  const { auth } = state;
+  const props = {
+      value0: state.hours.value0,
+      value1: state.hours.value1,
+      value2: state.hours.value2,
+      value3: state.hours.value3,
+      value4: state.hours.value4,
+      value5: state.hours.value5,
+      value6: state.hours.value6,
+      value7: state.hours.value7,
+      value8: state.hours.value8,
+      value9: state.hours.value9,
+      value10: state.hours.value10,
+      value11: state.hours.value11,
+      value12: state.hours.value12,
+      value13: state.hours.value13,
+      authState: auth
+  };
+  return props;
 };
+
 const mapDispatchToProps = (dispatch) => {
     return {
         s_value0: (value0) => {
@@ -603,6 +703,7 @@ const mapDispatchToProps = (dispatch) => {
         s_value13: (value13) => {
             dispatch(s_value13(value13));
         },
+        auth: bindActionCreators(ActionCreators, dispatch),
     }
 }
 

@@ -28,12 +28,36 @@ class service extends React.Component{
 
   constructor(props) {
     super(props);
-    console.log(this.props);
+    this.state = {
+      price: '',
+      travel: []
+    }
+  }
+
+  setPrice(event) {
+    let price = event.nativeEvent.text;
+    this.setState({price})
   }
 
   buttonPress = () => {
-    NavigationActions.hours()
+    if (this.props.isSelected1) {
+      this.state.travel.push("Provider Home");
+    }
+    if (this.props.isSelected2) {
+      this.state.travel.push("Salon");
+    }
+    if (this.props.isSelected3) {
+      this.state.travel.push("Client");
+    }
+    this._goToNextView(NavigationActions.hours, {first: this.props.first, last: this.props.last,
+              email: this.props.email, password: this.props.password, phone: this.props.phone, 
+              provider: "Hair Stylist", price: this.state.price, travel: this.state.travel});
   }
+
+  _goToNextView(nextView, data) {
+    nextView(data);
+  }
+
   back_button = () => {
     this.props.unselected()
     NavigationActions.first()
@@ -99,6 +123,8 @@ class service extends React.Component{
                   style={{fontFamily: 'Montserrat', width:60, fontSize: 22, color:'#f26c4f'}}
                   keyboardType='numeric'
                   autoFocus={true}
+                  onChange={this.setPrice.bind(this)}
+                  value={this.state.price}
                 />
               </View>
             </View>

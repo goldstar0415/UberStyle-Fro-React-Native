@@ -33,11 +33,29 @@ export default class first extends React.Component{
       email_text: '',
       email_flag: false,
       passBtn: false,
-      text: '',
+      text: '', //Phone number
       text_flag: true,
       text_flag1: true,
-      flagBtn: false
+      flagBtn: false,
+      fname_text: '', // First Name
+      lname_text: '', // Last Name
+      password_text: '' // Password
     };
+  }
+
+  setFirstNameText(event) {
+    let fname_text = event.nativeEvent.text;
+    this.setState({fname_text})
+  }
+
+  setLastNameText(event) {
+    let lname_text = event.nativeEvent.text;
+    this.setState({lname_text})
+  }
+
+  setPasswordText(event) {
+    let password_text = event.nativeEvent.text;
+    this.setState({password_text})
   }
 
   setEmailText(event) {
@@ -69,6 +87,10 @@ export default class first extends React.Component{
     if(text.length == 14){this.setState({flagBtn:true})}else{this.setState({flagBtn:false})}
   }
 
+  _goToNextView(nextView, data) {
+    nextView(data);
+  }
+
   render(){
     return (
       <View style={styles.mainContainer}>
@@ -98,6 +120,8 @@ export default class first extends React.Component{
                   this.setState({fnameBtn:false})
                 }
               }}
+              onChange={this.setFirstNameText.bind(this)}
+              value={this.state.fname_text}
             />
           </View>
           <View style={styles.view}>
@@ -113,6 +137,8 @@ export default class first extends React.Component{
                   this.setState({lnameBtn:false})
                 }
               }}
+              onChange={this.setLastNameText.bind(this)}
+              value={this.state.lname_text}
             />
           </View>
           <View style={styles.view}>
@@ -140,6 +166,8 @@ export default class first extends React.Component{
                   this.setState({passBtn:false})
                 }
               }}
+              onChange={this.setPasswordText.bind(this)}
+              value={this.state.password_text}
             />
           </View>
           <View style={styles.view}>
@@ -187,7 +215,8 @@ export default class first extends React.Component{
         </ScrollView>
         {
           this.state.fnameBtn && this.state.lnameBtn && this.state.email_flag && this.state.passBtn && this.state.flagBtn && this.state.isSelected ? (
-            <TouchableOpacity onPress={NavigationActions.second}>
+            <TouchableOpacity onPress={() => this._goToNextView(NavigationActions.second, {first: this.state.fname_text, last: this.state.lname_text,
+              email: this.state.email_text, password: this.state.password_text, phone: this.state.text})}>
               <View style={styles.sBtn_view}>
                 <Text style={styles.loginBtntext}>Sign Up</Text>
               </View>

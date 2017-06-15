@@ -1,12 +1,13 @@
 import React from 'react';
 import {PropTypes} from "react";
-import {StyleSheet, Text, View, ScrollView, ListView, TextInput, Picker, Image, TouchableOpacity, TouchableHighlight, Dimensions, Platform} from "react-native";
+import {StyleSheet, Text, View, ScrollView, ListView, TextInput, Picker, Image, TouchableOpacity, TouchableHighlight, Dimensions, Platform, AsyncStorage} from "react-native";
 import Button from 'react-native-button';
 import { Actions as NavigationActions} from 'react-native-router-flux'
 
 import Modal from 'react-native-modalbox';
 import { connect } from 'react-redux'
-import { setPhotoState, setServiceState, setAddressState, setAboutState } from '../../../actions';
+import { setPhotoState, setServiceState, setAddressState, setAboutState, ActionCreators } from '../../../actions';
+import { bindActionCreators } from 'redux';
 
 import RadioButton from 'radio-button-react-native';
 
@@ -58,8 +59,8 @@ const time = [
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
 
-const category = ['Barber', 'Haircut', 'Weaves', 'Color', 'Natural Hair', 'Straightening']
-const sub_category = ['All Specialities', "Men's haircut", 'Line-Up', 'Haircut & Beard Trim', 'Fade', 'Taper', 'Clipper Haircut', 'Create Your Own']
+const category = []
+const sub_category = []
 var category_data = [];
 
 class profileComplete extends React.Component {
@@ -80,7 +81,9 @@ class profileComplete extends React.Component {
           category_data: this._genRow(),
           category_dataSource: ds,
           sub_category_dataSource: ds,
-          service_name: "Women's Cut",
+          service_name: "First Service",
+          second_service_name: "Second Service",
+          service_index: 0,
           time_open: false,
           dataSource: ds.cloneWithRows(time),
           offsetY : 0,
@@ -89,21 +92,107 @@ class profileComplete extends React.Component {
             lat: null,
             lng: null
           },
-          error: null
+          error: null,
+          services: [],
+          price: ['', ''],
+          time: [0, 0]
         }
     }
 
     componentDidMount(){
-      this.setState({
-        category_dataSource: this.state.category_dataSource.cloneWithRows(this.state.category_data)
+      this._getParentSerivces()
+      this._getProfileState()
+    }
+
+    _getParentSerivces() {
+      this.props.actions.getParentServices().then(() => {
+        const { apiState } = this.props
+        category_data = []
+        category = []
+        category = apiState.service
+        category.sort( function( a, b ) {
+          a = a.name.toLowerCase();
+          b = b.name.toLowerCase();
+
+          return a < b ? -1 : a > b ? 1 : 0;
+        });
+
+        for (i=0;i<category.length;i++) {
+          category_data.push({
+            value: category[i].name,
+            id: category[i]._id,
+            isSelect: false
+          })
+        }
+        this.setState({
+          category_data: category_data
+        })
+        this.setState({
+          category_dataSource: this.state.category_dataSource.cloneWithRows(this.state.category_data)
+        })
+        
+        this.categoryPress(category_data[0], 0)
+
+      });
+    }
+
+    _getChildService(parent_id) {
+      this.props.actions.getChildServices(parent_id).then(() => {
+        const { apiState } = this.props;
+        sub_category = []
+        for (i=0;i<apiState.childService.length;i++) {
+          sub_category.push({
+            value: apiState.childService[i].name,
+            id: apiState.childService[i]._id,
+            isSelect: false
+          })
+        }
+
+        sub_category.sort( function( a, b ) {
+          a = a.value.toLowerCase();
+          b = b.value.toLowerCase();
+
+          return a < b ? -1 : a > b ? 1 : 0;
+        });
+
+        this.setState({
+          sub_category_data: sub_category
+        })
+        this.setState({
+          sub_category_dataSource: this.state.sub_category_dataSource.cloneWithRows(this.state.sub_category_data)
+        })
+      });
+    }
+
+    _getProfileState() {
+      AsyncStorage.getItem("service_state").then((value) => {
+        this.setState({service_state: parseInt(value)})
+      }).catch((error) => {
+        this.setState({service_state: 0})
+      })
+      AsyncStorage.getItem("photo_state").then((value) => {
+        this.setState({photo_state: parseInt(value)})
+      }).catch((error) => {
+        this.setState({photo_state: 0})
+      })
+      AsyncStorage.getItem("address_state").then((value) => {
+        this.setState({address_state: parseInt(value)})
+      }).catch((error) => {
+        this.setState({address_state: 0})
+      })
+      AsyncStorage.getItem("about_state").then((value) => {
+        this.setState({about_state: parseInt(value)})
+      }).catch((error) => {
+        this.setState({about_state: 0})
       })
     }
 
     _genRow(){
       category_data = []
-      for (var i = 0; i < category.length; i++){
+      for (i=0;i<category.length;i++) {
         category_data.push({
-          value: category[i],
+          value: category[i].name,
+          id: category[i]._id,
           isSelect: false
         })
       }
@@ -118,7 +207,125 @@ class profileComplete extends React.Component {
       console.log(categoryClone);
       const rowHasChanged = (r1, r2) => r1 !== r2
       const ds = new ListView.DataSource({rowHasChanged})
-      this.setState({category_dataSource: ds.cloneWithRows(categoryClone), sub_category_dataSource: ds.cloneWithRows(sub_category)})
+      this.setState({
+        category_dataSource: ds.cloneWithRows(categoryClone),
+        category_selected: true
+      })
+      this._getChildService(rowData.id)
+    }
+
+    _showService(data) {
+      if (data.value == 'Create Your Own'){
+        this.setState({category_open: false, own_open: true})
+      } else if (this.state.service_index ==0 ) {
+        this.setState({category_open: false, service_name: data.value})
+      } else {
+        this.setState({category_open: false, second_service_name: data.value})
+      }
+      var tmp = this.state.services;
+      tmp[this.state.service_index] = data
+      this.setState({
+        services: tmp
+      });
+    }
+
+    _saveService() {
+      const { authState } = this.props;
+      for (i=0; i<this.state.services.length; i++) {
+        if (this.state.services[i].value == "First Service" || this.state.services[i].value == "Second Service") continue
+        this.props.actions.addService(authState.token, this.state.services[i].id, this.state.services[i].value, "", this.state.time[i],
+        this.state.price[i], true).then(()=>{
+          if (authState.isAuthenticated) {
+
+          } else {
+            console.log('error saving');
+            console.log(authState);
+          }
+        })
+      }
+
+      this.setState({open: false, service_state: 1}); 
+      this.props.setServiceState(1);
+      AsyncStorage.setItem("service_state", '1')
+    }
+
+    _saveAddress () {
+      const { authState } = this.props;
+      let location = {}
+        let address = {}
+        let fullAddress = ""
+        if (this.state.street && this.state.street != undefined) {
+          address["street1"] = this.state.street
+          if (fullAddress == "") {
+            fullAddress = this.state.street
+          } else {
+            this.setState({address_open: false}); 
+            this.props.setAddressState(1);
+            AsyncStorage.setItem("address_state", '1');
+            return;
+            // fullAddress += (" " + this.state.street)
+          }
+        }
+        if (this.state.building && this.state.building != undefined) {
+          address["street2"] = this.state.building
+          if (fullAddress == "") {
+            fullAddress = this.state.building
+          } else {
+            fullAddress += (" " + this.state.building)
+          }
+        }
+        if (this.state.city && this.state.city != undefined) {
+          address["city"] = this.state.city
+          if (fullAddress == "") {
+            fullAddress = this.state.city
+          } else {
+            fullAddress += (" " + this.state.city)
+          }
+        }
+        if (this.state.county && this.state.county != undefined) {
+          address["state"] = this.state.county
+          if (fullAddress == "") {
+            fullAddress = this.state.county
+          } else {
+            fullAddress += (" " + this.state.county)
+          }
+        }
+        if (this.state.country && this.state.country != undefined) {
+          address["country"] = this.state.country
+          if (fullAddress == "") {
+            fullAddress = this.state.country
+          } else {
+            fullAddress += (" " + this.state.country)
+          }
+        }
+        if (this.state.position) {
+          let coordinates = [this.state.position.lng, this.state.position.lat]
+          let geolocation = {}
+          geolocation["coordinates"] = coordinates
+          geolocation["type"] = "Point"
+          address["geoLocation"] = geolocation
+        }
+        let isNum = /^\d+$/.test(this.state.zip)
+        if (isNum) {
+          address["zipCode"] = this.state.zip
+        } else {
+          address["postalCode"] = this.state.zip
+        }
+        location["address"] = address
+        this.props.actions.editUserLocation(authState.token, location).then(()=>{
+          this.setState({address_open: false, address_state: 1}); 
+          this.props.setAddressState(1);
+          AsyncStorage.setItem("address_state", '1');
+        });
+    }
+
+    _saveDescription() {
+      const { authState } = this.props;
+      this.props.actions.editUserDescription(authState.token, this.state.about).then(() => {
+        this.setState({about_open: false, about_state: 1}); 
+        this.props.setAboutState(1)
+        AsyncStorage.setItem("about_state", '1');
+      });
     }
 
     renderCategory (rowData: string , sectionID: number, rowID: number) {
@@ -132,16 +339,21 @@ class profileComplete extends React.Component {
     }
     renderSubCategory (rowData: string , sectionID: number, rowID: number) {
       return (
-        <TouchableHighlight  onPress={() => rowData == 'Create Your Own' ? this.setState({category_open: false, own_open: true}) : this.setState({category_open: false, service_name: rowData})} underlayColor='#f26c4f'>
+        <TouchableHighlight  onPress={() => this._showService(rowData)} underlayColor='#f26c4f'>
           <View style={styles.sub_category_view}>
-            <Text style={rowData == 'Create Your Own' ? {fontSize: 14, fontFamily: 'Montserrat', alignSelf: 'center', color: '#f26c4f'} : {fontSize: 14, fontFamily: 'Montserrat', alignSelf: 'center'}}>{rowData}</Text>
+            <Text style={rowData == 'Create Your Own' ? {fontSize: 14, fontFamily: 'Montserrat', alignSelf: 'center', color: '#f26c4f'} : {fontSize: 14, fontFamily: 'Montserrat', alignSelf: 'center'}}>{rowData.value}</Text>
           </View>
         </TouchableHighlight>
       )
     }
 
     handleOnPress(value){
-      this.setState({time_open: false, time_value: value})
+      this.setState({time_open: false})
+      var tmp = this.state.time
+      tmp[this.state.service_index] = value
+      this.setState({
+        time: tmp
+      })
     }
     renderRow (rowData) {
       return (
@@ -149,7 +361,7 @@ class profileComplete extends React.Component {
           <View style={styles.row}>
             <Text style={styles.row_text}>{rowData.label}</Text>
             <View  style={{alignSelf: 'center', alignItems:'center'}}>
-              <RadioButton currentValue={this.state.time_value} value={rowData.value} onPress={() => this.handleOnPress(rowData.value)} outerCircleColor='#63b7b7' outerCircleSize={18} outerCircleWidth={2} innerCircleColor='#63b7b7' innerCircleSize={10}/>
+              <RadioButton currentValue={this.state.time[this.state.service_index]} value={rowData.value} onPress={() => this.handleOnPress(rowData.value)} outerCircleColor='#63b7b7' outerCircleSize={18} outerCircleWidth={2} innerCircleColor='#63b7b7' innerCircleSize={10}/>
             </View>
           </View>
         </TouchableOpacity>
@@ -161,9 +373,18 @@ class profileComplete extends React.Component {
       this.setState({service_name})
     }
 
-    setPrice(event) {
+    setFirstPrice(event) {
       let price = event.nativeEvent.text;
-      this.setState({price})
+      var tmp = this.state.price
+      tmp[0] = price
+      this.setState({price:tmp})
+    }
+
+    setSecondPrice(event) {
+      let price = event.nativeEvent.text;
+      var tmp = this.state.price
+      tmp[1] = price
+      this.setState({price:tmp})
     }
 
     setStreet(event) {
@@ -217,7 +438,7 @@ class profileComplete extends React.Component {
     }
 
     render() {
-        var complete_state = this.state.complete_state - this.props.photo_state - this.props.service_state - this.props.address_state - this.props.about_state;
+        var complete_state = this.state.complete_state - this.state.photo_state - this.state.service_state - this.state.address_state - this.state.about_state;
 
         return (
           <View style={styles.container}>
@@ -232,44 +453,46 @@ class profileComplete extends React.Component {
             </View>
 
             <Image source={this.state.pre_image} style={{width: width, height: 180}} blurRadius={10}>
-              <TouchableOpacity  style={styles.photo_view} onPress={() => {NavigationActions.managePhotos(); this.props.setPhotoState(1)}}>
+              <TouchableOpacity  style={styles.photo_view} onPress={() => {NavigationActions.managePhotos(); this.props.setPhotoState(1); AsyncStorage.setItem("photo_state", '1');this.setState({
+                photo_state:1})}}>
                 <Text style={{fontSize:16, fontFamily: 'Montserrat', color: 'white'}}>Add Photos</Text>
-                <Image source={this.props.photo_state == 0 ? require('../../../img/check_empty_white.png') : require('../../../img/check_red.png')} style={styles.check_img}/>
+                <Image source={this.state.photo_state == 0 ? require('../../../img/check_empty_white.png') : require('../../../img/check_red.png')} style={styles.check_img}/>
               </TouchableOpacity>
             </Image>
 
             <TouchableOpacity  style={styles.sub_view} onPress={() => this.setState({open: true})}>
               <View style={{flexDirection: 'column'}}>
                 <Text style={{fontFamily: 'Montserrat', fontSize:16}}>Services</Text>
-                <Text style={{fontFamily: 'Montserrat', fontSize:14, color: '#363636'}} numberOfLines={1}>{this.state.price == undefined ? 'Add some basic services to get started' : this.state.service_name + '          ' + time[this.state.time_value].label + '     $' + this.state.price}</Text>
+                <Text style={{fontFamily: 'Montserrat', fontSize:14, color: '#363636'}} numberOfLines={1}>{this.state.price == undefined ? 'Add some basic services to get started' : this.state.service_name + '          ' + time[this.state.time[this.state.service_index]].label + '     $' + this.state.price[this.state.service_index]}</Text>
               </View>
-              <Image source={this.props.service_state == 0 ? require('../../../img/check_empty.png') : require('../../../img/check_red.png')} style={styles.check_img}/>
+              <Image source={this.state.service_state == 0 ? require('../../../img/check_empty.png') : require('../../../img/check_red.png')} style={styles.check_img}/>
             </TouchableOpacity>
             <TouchableOpacity  style={styles.sub_view} onPress={() => this.setState({address_open: true})}>
               <View style={{flexDirection: 'column'}}>
                 <Text style={{fontFamily: 'Montserrat', fontSize:16}}>Set Address</Text>
                 <Text style={{fontFamily: 'Montserrat', fontSize:14, color: '#363636'}} numberOfLines={1}>{this.state.country == undefined ? 'Only confirmed clients see your address' : this.state.city + ', ' + this.state.county + ', ' + this.state.country}</Text>
               </View>
-              <Image source={this.props.address_state == 0 ? require('../../../img/check_empty.png') : require('../../../img/check_red.png')} style={styles.check_img}/>
+              <Image source={this.state.address_state == 0 ? require('../../../img/check_empty.png') : require('../../../img/check_red.png')} style={styles.check_img}/>
             </TouchableOpacity>
             <TouchableOpacity  style={[styles.sub_view, {borderBottomWidth: 0}]} onPress={() => this.setState({about_open: true})}>
               <View style={{flexDirection: 'column'}}>
                 <Text style={{fontFamily: 'Montserrat', fontSize:16}}>About Me</Text>
                 <Text style={{fontFamily: 'Montserrat', fontSize:14, color: '#363636'}} numberOfLines={1}>{this.state.about == undefined ? 'Tell us more about yourself' : this.state.about}</Text>
               </View>
-              <Image source={this.props.about_state == 0 ? require('../../../img/check_empty.png') : require('../../../img/check_red.png')} style={styles.check_img}/>
+              <Image source={this.state.about_state == 0 ? require('../../../img/check_empty.png') : require('../../../img/check_red.png')} style={styles.check_img}/>
             </TouchableOpacity>
             <TouchableOpacity  style={styles.optional_view} onPress={() => this.setState({details_open: true})}>
               <Text style={{fontFamily: 'Montserrat', fontSize:16}}>Optional Details</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.filter_btn_view} onPress={NavigationActions.pop}>
-              <Text style={styles.filter_btn}>{complete_state == 1 || complete_state == 0 ? complete_state + ' step to list' : complete_state + ' steps to list'}</Text>
+              {<Text style={styles.filter_btn}>{complete_state > 1 ? complete_state + ' steps to list' : 
+                complete_state == 1 ? complete_state + ' step to list':'Finish'}</Text>}
             </TouchableOpacity>
 
             <Modal isOpen={this.state.open} onClosed={() => this.setState({open: false})} style={styles.modal} position={"bottom"} swipeToClose={false}>
               <View style={styles.sub_form}>
                 <View style={{flexDirection:'row', height: 60, backgroundColor: "#63b7b7",shadowColor: "#000000",shadowOpacity: 0.8,shadowRadius: 2,shadowOffset: {height: 1,width: 0}}}>
-                  <TouchableOpacity  onPress={() => {this.setState({open: false}); this.props.setServiceState(1)}}>
+                  <TouchableOpacity  onPress={() => this._saveService()}>
                     <Image source={require('../../../img/checked_white.png')}  style={{marginTop: 32,marginLeft: 20,width: 18,height: 18}}/>
                   </TouchableOpacity>
                   <Text style={{fontFamily: 'Montserrat', fontSize: 17,marginTop: 30,marginLeft: 20,color: 'white',textAlign: 'center'}}>Done</Text>
@@ -280,43 +503,52 @@ class profileComplete extends React.Component {
                 </View>
                 <View style={{width: width, height: height, alignItems: 'center', backgroundColor: '#f1f0f0'}}>
                   <View style={styles.service_view}>
-                    <TouchableOpacity style={styles.service_touch} onPress={() => this.setState({category_open: true})}>
+                    <TouchableOpacity style={styles.service_touch} onPress={() => this.setState({category_open: true, service_index: 0})}>
                       <Text style={{fontFamily: 'Montserrat', fontSize: 14, marginLeft: 15}}>{this.state.service_name}</Text>
                     </TouchableOpacity>
                     <View style={{flexDirection: 'row'}}>
                       <TouchableOpacity style={[styles.service_touch, {width:(width-40)/2, borderBottomWidth: 0, borderRightWidth: 0.2}]} onPress={() => {
-                        if(this.state.time_value > 27){
-                          this.setState({time_open: true, offsetY: (height - 50)/13 * 27})
+                        if(this.state.time[0] > 27){
+                          this.setState({time_open: true, offsetY: (height - 50)/13 * 27, service_index: 0})
                         }else{
-                          this.setState({time_open: true, offsetY: (height - 50)/13 * this.state.time_value})
+                          this.setState({time_open: true, offsetY: (height - 50)/13 * this.state.time[0], service_index: 0})
                         }
                       }}>
-                        <Text style={{fontFamily: 'Montserrat', fontSize: 14, marginLeft: 15}}>{time[this.state.time_value].label}</Text>
+                        <Text style={{fontFamily: 'Montserrat', fontSize: 14, marginLeft: 15}}>{time[this.state.time[0]].label}</Text>
                       </TouchableOpacity>
                       <View style={{flexDirection: 'row', alignItems: 'center'}}>
                         <Text style={{fontFamily: 'Montserrat', fontSize: 14, marginLeft: 15}}>$</Text>
                         <TextInput
                           style={{fontFamily: 'Montserrat', width: 60, height: 40, fontSize: 14}}
                           keyboardType='numeric'
-                          value={this.state.price}
-                          onChange={this.setPrice.bind(this)}
+                          value={this.state.price[0]}
+                          onChange={this.setFirstPrice.bind(this)}
                         />
                       </View>
                     </View>
                   </View>
 
                   <View style={[styles.service_view, {marginTop: 10}]}>
-                    <TouchableOpacity style={styles.service_touch} onPress={this.props.press}>
-                      <Text style={{fontFamily: 'Montserrat', fontSize: 14, marginLeft: 15}}>Full Color</Text>
+                    <TouchableOpacity style={styles.service_touch} onPress={() => this.setState({category_open: true, service_index: 1})}>
+                      <Text style={{fontFamily: 'Montserrat', fontSize: 14, marginLeft: 15}}>{this.state.second_service_name}</Text>
                     </TouchableOpacity>
                     <View style={{flexDirection: 'row'}}>
-                      <TouchableOpacity style={[styles.service_touch, {width:(width-40)/2, borderBottomWidth: 0, borderRightWidth: 0.2}]} onPress={this.props.press}>
-                        <Text style={{fontFamily: 'Montserrat', fontSize: 14, marginLeft: 15}}>2 h</Text>
+                      <TouchableOpacity style={[styles.service_touch, {width:(width-40)/2, borderBottomWidth: 0, borderRightWidth: 0.2}]} onPress={() => {
+                        if(this.state.time[1] > 27){
+                          this.setState({time_open: true, offsetY: (height - 50)/13 * 27, service_index: 1})
+                        }else{
+                          this.setState({time_open: true, offsetY: (height - 50)/13 * this.state.time[1], service_index: 1})
+                        }
+                      }}>
+                        <Text style={{fontFamily: 'Montserrat', fontSize: 14, marginLeft: 15}}>{time[this.state.time[1]].label}</Text>
                       </TouchableOpacity>
                       <View style={{flexDirection: 'row', alignItems: 'center'}}>
                         <Text style={{fontFamily: 'Montserrat', fontSize: 14, marginLeft: 15}}>$</Text>
                         <TextInput
                           style={{fontFamily: 'Montserrat', width: 60, height: 40, fontSize: 14}}
+                          keyboardType='numeric'
+                          value={this.state.price[1]}
+                          onChange={this.setSecondPrice.bind(this)}
                         />
                       </View>
                     </View>
@@ -330,7 +562,7 @@ class profileComplete extends React.Component {
             <Modal isOpen={this.state.address_open} onClosed={() => this.setState({address_open: false})} style={styles.modal} position={"bottom"} swipeToClose={false}>
               <View style={styles.sub_form}>
                 <View style={{flexDirection:'row', width: width, height: 60, backgroundColor: "#63b7b7",shadowColor: "#000000",shadowOpacity: 0.8,shadowRadius: 2,shadowOffset: {height: 1,width: 0}}}>
-                  <TouchableOpacity  onPress={() => {this.setState({address_open: false}); this.props.setAddressState(1)}}>
+                  <TouchableOpacity  onPress={() => this._saveAddress()}>
                     <Image source={require('../../../img/checked_white.png')}  style={{marginTop: 32,marginLeft: 20,width: 18,height: 18}}/>
                   </TouchableOpacity>
                   <Text style={{fontFamily: 'Montserrat', fontSize: 17,marginTop: 30,marginLeft: 20,color: 'white',textAlign: 'center'}}>Done</Text>
@@ -399,7 +631,7 @@ class profileComplete extends React.Component {
             <Modal isOpen={this.state.about_open} onClosed={() => this.setState({about_open: false})} style={[styles.modal, {backgroundColor: '#f1f0f0'}]} position={"bottom"} swipeToClose={false}>
               <View style={styles.sub_form}>
                 <View style={{flexDirection:'row', height: 60, backgroundColor: "#63b7b7",shadowColor: "#000000",shadowOpacity: 0.8,shadowRadius: 2,shadowOffset: {height: 1,width: 0}}}>
-                  <TouchableOpacity  onPress={() => {this.setState({about_open: false}); this.props.setAboutState(1)}}>
+                  <TouchableOpacity  onPress={() => this._saveDescription()}>
                     <Image source={require('../../../img/checked_white.png')}  style={{marginTop: 32,marginLeft: 20,width: 18,height: 18}}/>
                   </TouchableOpacity>
                   <Text style={{fontFamily: 'Montserrat', fontSize: 17,marginTop: 30,marginLeft: 20,color: 'white',textAlign: 'center'}}>Done</Text>
@@ -710,7 +942,7 @@ const styles = StyleSheet.create({
    fontFamily: 'Montserrat',
    fontSize: 14,
    width: width-40,
-   height: 30,
+   height: 50,
    position: 'absolute',
    bottom: 0
  },
@@ -730,11 +962,15 @@ const styles = StyleSheet.create({
 });
 
 const mapStateToProps = (state) => {
+  const {api} = state
+  const {auth} = state
     const props = {
       photo_state: state.daily.photo_state,
       service_state: state.daily.service_state,
       address_state: state.daily.address_state,
       about_state: state.daily.about_state,
+      apiState: api,
+      authState: auth
     };
     return props;
 };
@@ -753,6 +989,7 @@ const mapDispatchToProps = (dispatch) => {
       setAboutState: (about_state) => {
           dispatch(setAboutState(about_state));
       },
+      actions: bindActionCreators(ActionCreators, dispatch),
     }
 }
 

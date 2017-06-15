@@ -52,7 +52,7 @@ class Settings extends React.Component {
             <TouchableOpacity style={styles.sub_view} onPress={() => this.setState({sub_open: true, pre_title: this.state.title, pre_description: this.state.description})}>
               <Text style={styles.text}>Send Feedback</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.sub_view} onPress={this.props.press}>
+            <TouchableOpacity style={styles.sub_view} onPress={NavigationActions.login}>
               <Text style={styles.text}>Logout</Text>
             </TouchableOpacity>
 

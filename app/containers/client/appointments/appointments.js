@@ -7,7 +7,9 @@ import stars from '../../../components/stars';
 
 import { TabViewAnimated, TabBar } from 'react-native-tab-view';
 
-import { connect } from 'react-redux'
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import { ActionCreators } from '../../../actions';
 
 const { width, height } = Dimensions.get('window');
 
@@ -21,65 +23,37 @@ class Appointments extends React.Component {
             { key: '1', title: 'Past' },
             { key: '2', title: 'Upcoming' },
           ],
-          hairstylist: [
-            {
-              icon: require('../../../img/david.jpg'),
-              name: 'John Doe',
-              star: 5,
-              review: 186,
-              rating: 120,
-              availabilaty: "Mon, Mar 25, 2017 • 11:00 AM",
-              location: {
-                latitude: 37.79825,
-                longitude: -122.4424,
-              },
-              state: 0
-            },
-            {
-              icon: require('../../../img/stylist.png'),
-              name: 'Millena Mill',
-              star: 4,
-              review: 178,
-              rating: 100,
-              availabilaty: "Mon, Mar 25, 2017 • 11:00 AM",
-              location: {
-                latitude: 37.78834,
-                longitude: -122.4343,
-              },
-              state: 1
-            },
-            {
-              icon: require('../../../img/david1.jpeg'),
-              name: 'Karim Will',
-              star: 4.5,
-              review: 160,
-              rating: 80,
-              availabilaty: "Mon, Mar 25, 2017 • 11:00 AM",
-              location: {
-                latitude: 37.78422,
-                longitude: -122.4844,
-              },
-              state: 2
-            },
-            {
-              icon: require('../../../img/black_message.png'),
-              name: 'Thomas Jong',
-              star: 3.5,
-              review: 80,
-              rating: 40,
-              availabilaty: "Mon, Mar 25, 2017 • 11:00 AM",
-              location: {
-                latitude: 37.78565,
-                longitude: -122.4124,
-              },
-              state: 2
-            }
-          ]
+          hairstylist: [],
+          past_hairstylist: []
         }
     }
 
-    componentDidMount() {
+    _getAppointmentPast() {
+      this.props.actions.getPastAppointments(this.props.authState.token).then(()=>{
+        const {apiState} = this.props
+        this.setState({
+          past_hairstylist: (apiState.bookings) ? apiState.bookings : []
+        })
+      })
+    }
 
+    _getAppointmentUpcoming() {
+      this.props.actions.getUpcomingAppointments(this.props.authState.token).then(()=>{
+        const {apiState} = this.props
+        this.setState({
+          hairstylist: (apiState.bookings) ? apiState.bookings : []
+        })
+      })
+    }
+
+    _getDateStr(date) {
+      var dateFormat = require('dateformat');
+      return dateFormat(date, "ddd, mmm d, yyyy • h:MM TT");
+    }
+
+    componentDidMount() {
+      this._getAppointmentUpcoming();
+      this._getAppointmentPast();
     }
 
     _handleChangeTab = (index) => {
@@ -94,44 +68,83 @@ class Appointments extends React.Component {
       switch (route.key) {
       case '1':
         return (
-          <View style={{width: width, height: height-130, alignSelf: 'center', alignItems: 'center', justifyContent: 'center'}}>
-            <Image source={require('../../../img/ic_cal_light_grey.png')}  style={{width: 90,height: 90}}/>
-            <Text style={{fontFamily: 'Montserrat', textAlign: 'center', fontSize: 22, marginTop: 20}}>No past reservations</Text>
-            <Text style={{fontFamily: 'Montserrat', textAlign: 'center', fontSize: 16, marginTop: 5}}>Past reservations will be available here</Text>
-            <TouchableOpacity style={styles.sBtn_view} onPress={NavigationActions.explore}>
-              <Text style={styles.loginBtntext}>Start Exploring</Text>
-            </TouchableOpacity>
-          </View>
-        )
-      case '2':
-        return (
-          <ScrollView style={{marginBottom: 50}}>
+          this.state.past_hairstylist.length > 0 ? (
+            <ScrollView style={{marginBottom: 50}}>
             {
-              this.state.hairstylist.map((hairstyle, i) =>
+              this.state.past_hairstylist.map((hairstyle, i) =>
                 <TouchableOpacity key={i} onPress={() => NavigationActions.details(hairstyle)}>
                   <View style={styles.sub_view}>
-                    <Image source={hairstyle.icon} style={styles.profile}/>
+                    <Image source={(hairstyle.icon)?hairstyle.icon:require('../../../img/stylist.png')} style={styles.profile}/>
                     <View style={styles.details_view}>
                       <View style={styles.profile_view}>
                         <View style={styles.name_view}>
-                          <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 14}}>{hairstyle.name}</Text>
+                          <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 14}}>{hairstyle.provider.name}</Text>
                           <View style={styles.review_view}>
-                            <Image source={stars[hairstyle.star]} style={styles.rating_star}/>
-                            <Text style={{fontFamily: 'Montserrat', paddingLeft: 5, textAlign: 'left', fontSize: 10}}>{hairstyle.review} Reviews</Text>
+                            <Image source={(hairstyle.star)?stars[hairstyle.star]:stars[4.5]} style={styles.rating_star}/>
+                            <Text style={{fontFamily: 'Montserrat', paddingLeft: 5, textAlign: 'left', fontSize: 10}}>{(hairstyle.review)?hairstyle.review: "80"} Reviews</Text>
                           </View>
                         </View>
-                        <Text style={hairstyle.state == 0 ? [styles.rating_text, {color: '#18e409'}] : hairstyle.state == 2 ? [styles.rating_text, {color: '#ff0606'}] : [styles.rating_text, {color: '#808080'}]}>{hairstyle.state == 0 ? 'Confirmed' : hairstyle.state == 2 ? 'Canceled' : 'Pending'}</Text>
+                        <Text style={hairstyle.status == 'Completed' ? [styles.rating_text, {color: '#18e409'}] : hairstyle.status == 'Canceled' ? [styles.rating_text, {color: '#ff0606'}] : [styles.rating_text, {color: '#808080'}]}>{hairstyle.status}</Text>
                       </View>
                       <View style={styles.line_view}/>
-                      <Text style={{fontFamily: 'Montserrat', marginTop: 10, textAlign: 'left', fontSize: 13}}>{hairstyle.availabilaty}{'\n'}Goddess Locs - ${hairstyle.rating}</Text>
+                      <Text style={{fontFamily: 'Montserrat', marginTop: 10, textAlign: 'left', fontSize: 13}}>{this._getDateStr(new Date(hairstyle.startDatetime))}{'\n'}{hairstyle.service.name} - ${hairstyle.price}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
               )
             }
             <View style={{height: 10, backgroundColor: '#f1f0f0'}}/>
-          </ScrollView>
+            </ScrollView>):(
+              <View style={{width: width, height: height-130, alignSelf: 'center', alignItems: 'center', justifyContent: 'center'}}>
+                <Image source={require('../../../img/ic_cal_light_grey.png')}  style={{width: 90,height: 90}}/>
+                <Text style={{fontFamily: 'Montserrat', textAlign: 'center', fontSize: 22, marginTop: 20}}>No past reservations</Text>
+                <Text style={{fontFamily: 'Montserrat', textAlign: 'center', fontSize: 16, marginTop: 5}}>Past reservations will be available here</Text>
+                <TouchableOpacity style={styles.sBtn_view} onPress={NavigationActions.explore}>
+                  <Text style={styles.loginBtntext}>Start Exploring</Text>
+                </TouchableOpacity>
+              </View>
+          )
         )
+      case '2':
+        return (
+          this.state.hairstylist.length > 0 ? (
+            <ScrollView style={{marginBottom: 50}}>
+            {
+              this.state.hairstylist.map((hairstyle, i) =>
+                <TouchableOpacity key={i} onPress={() => NavigationActions.details(hairstyle)}>
+                  <View style={styles.sub_view}>
+                    <Image source={(hairstyle.icon)?hairstyle.icon:require('../../../img/stylist.png')} style={styles.profile}/>
+                    <View style={styles.details_view}>
+                      <View style={styles.profile_view}>
+                        <View style={styles.name_view}>
+                          <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 14}}>{hairstyle.provider.name}</Text>
+                          <View style={styles.review_view}>
+                            <Image source={(hairstyle.star)?stars[hairstyle.star]:stars[4.5]} style={styles.rating_star}/>
+                            <Text style={{fontFamily: 'Montserrat', paddingLeft: 5, textAlign: 'left', fontSize: 10}}>{(hairstyle.review)?hairstyle.review: "80"} Reviews</Text>
+                          </View>
+                        </View>
+                        <Text style={hairstyle.status == 'Completed' ? [styles.rating_text, {color: '#18e409'}] : hairstyle.status == 'Canceled' ? [styles.rating_text, {color: '#ff0606'}] : [styles.rating_text, {color: '#808080'}]}>{hairstyle.status}</Text>
+                      </View>
+                      <View style={styles.line_view}/>
+                      <Text style={{fontFamily: 'Montserrat', marginTop: 10, textAlign: 'left', fontSize: 13}}>{this._getDateStr(new Date(hairstyle.startDatetime))}{'\n'}{hairstyle.service.name} - ${hairstyle.price}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )
+            }
+            <View style={{height: 10, backgroundColor: '#f1f0f0'}}/>
+            </ScrollView>):(
+              <View style={{width: width, height: height-130, alignSelf: 'center', alignItems: 'center', justifyContent: 'center'}}>
+                <Image source={require('../../../img/ic_cal_light_grey.png')}  style={{width: 90,height: 90}}/>
+                <Text style={{fontFamily: 'Montserrat', textAlign: 'center', fontSize: 22, marginTop: 20}}>No upcoming reservations</Text>
+                <Text style={{fontFamily: 'Montserrat', textAlign: 'center', fontSize: 16, marginTop: 5}}>Upcoming reservations will be available here</Text>
+                <TouchableOpacity style={styles.sBtn_view} onPress={NavigationActions.explore}>
+                  <Text style={styles.loginBtntext}>Start Exploring</Text>
+                </TouchableOpacity>
+              </View>
+          )
+        )
+          
 
       default:
         return null;
@@ -233,15 +246,18 @@ const styles = StyleSheet.create({
 });
 
 const mapStateToProps = (state) => {
-    const props = {
-
-    };
-    return props;
+  const { auth } = state
+  const { api } = state
+  const props = {
+    authState: auth,
+    apiState: api
+  };
+  return props;
 };
 
 const mapDispatchToProps = (dispatch) => {
     return {
-
+      actions: bindActionCreators(ActionCreators, dispatch)
     }
 }
 

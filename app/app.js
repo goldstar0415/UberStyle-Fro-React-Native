@@ -117,7 +117,13 @@ class app extends Component{
           <Scene key="hours" hideNavBar={true} panHandlers={null} component={hours} />
           <Scene key="login" hideNavBar={true} panHandlers={null} component={login} />
           <Scene key="forgotPassword" hideNavBar={true} panHandlers={null} component={forgotPassword} />
-          <Scene key="tabbar" type={ActionConst.RESET} tabs={true} tabBarStyle={Styles.tabBar}>            <Scene key="Daily" type={ActionConst.REFRESH} component={TabView} hideNavBar={true} title="DAILY" icon={TabIcon} />            <Scene key="Calendar" type={ActionConst.REFRESH} initial={true} component={TabView} hideNavBar={true} title="CALENDAR" icon={TabIcon}/>            <Scene key="Inbox" type={ActionConst.REFRESH} component={TabView} hideNavBar={true} title="INBOX" icon={TabIcon}/>            <Scene key="Stats" type={ActionConst.REFRESH} component={TabView} hideNavBar={true} title="STATS" icon={TabIcon}/>            <Scene key="Profile" type={ActionConst.REFRESH} component={TabView} hideNavBar={true} title="PROFILE" icon={TabIcon} />          </Scene>
+          <Scene key="tabbar" type={ActionConst.RESET} tabs={true} tabBarStyle={Styles.tabBar}>
+            <Scene key="Daily" type={ActionConst.REFRESH} initial={true} component={TabView} hideNavBar={true} title="DAILY" icon={TabIcon} />
+            <Scene key="Calendar" type={ActionConst.REFRESH} component={TabView} hideNavBar={true} title="CALENDAR" icon={TabIcon}/>
+            <Scene key="Inbox" type={ActionConst.REFRESH} component={TabView} hideNavBar={true} title="INBOX" icon={TabIcon}/>
+            <Scene key="Stats" type={ActionConst.REFRESH} component={TabView} hideNavBar={true} title="STATS" icon={TabIcon}/>
+            <Scene key="Profile" type={ActionConst.REFRESH} component={TabView} hideNavBar={true} title="PROFILE" icon={TabIcon} />
+          </Scene>
           <Scene key="profileEdit" hideNavBar={true} panHandlers={null} component={profileEdit} />
           <Scene key="messageRoom" hideNavBar={true} panHandlers={null} component={messageRoom} />
           <Scene key="alerts" hideNavBar={true} panHandlers={null} component={alerts} />

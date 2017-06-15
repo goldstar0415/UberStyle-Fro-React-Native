@@ -14,6 +14,7 @@ import Modal from 'react-native-modalbox';
 import DatePicker from 'react-native-datepicker'
 import ImagePicker from 'react-native-image-crop-picker';
 import RadioButton from 'radio-button-react-native';
+import Geocoder from 'react-native-geocoder';
 
 const gender = [
   {label: 'Male', value: 'M' },
@@ -28,13 +29,12 @@ const language = [
 class profileEdit extends React.Component {
     constructor(props) {
         super(props);
-        this._getUser();
 
         const rowHasChanged = (r1, r2) => r1 !== r2
         const ds = new ListView.DataSource({rowHasChanged})
 
         this.state = {
-          date:"2014-08-22",
+          date:"",
           open: false,
           sub_open: false,
           modal_state: 0,
@@ -43,7 +43,7 @@ class profileEdit extends React.Component {
           l_name: "L'Heureux",
           image: require('../../img/david1.jpeg'),
           gender_dataSource: ds.cloneWithRows(gender),
-          gender: 'M',
+          gender: '',
           lan_dataSource: ds.cloneWithRows(language),
           language: 'en',
           about: "About me",
@@ -58,15 +58,12 @@ class profileEdit extends React.Component {
       const { auth } = this.props;
       this.props.fetchUser(auth.user._id, auth.token).then(() => {
         const { api } = this.props;
-        console.log("-------------User Info----------");
-        console.log(api.user);
-        console.log("-------------User End----------");
         this.setState({
           f_name: api.user.firstName,
           l_name: api.user.lastName,   
           about: api.user.description != null ? api.user.description : "About me",
-          gender: api.user.gender != null ? api.user.gender : 'M',
-          date: api.user.birthdate != null ? api.user.birthdate : "2014-08-22",
+          gender: api.user.gender != null ? api.user.gender : '',
+          date: api.user.birthdate != null ? api.user.birthdate : "",
           language: api.user.language != null ? api.user.language : 'en',
           school: api.user.school != null ? api.user.school : '',
           work: api.user.work != null ? api.user.work : '',
@@ -99,7 +96,72 @@ class profileEdit extends React.Component {
         this.props.editUserWork(auth.token, this.state.work).then(() => {
           const { api } = this.props;
         });
+      } else if (this.state.modal_state == 6) {
+        let location = {}
+        let address = {}
+        let fullAddress = ""
+        if (this.state.street1 && this.state.street1 != undefined) {
+          address["street1"] = this.state.street1
+          if (fullAddress == "") {
+            fullAddress = this.state.street1
+          } else {
+            fullAddress += (" " + this.state.street1)
+          }
+        }
+        if (this.state.street2 && this.state.street2 != undefined) {
+          address["street2"] = this.state.street2
+          if (fullAddress == "") {
+            fullAddress = this.state.street2
+          } else {
+            fullAddress += (" " + this.state.street2)
+          }
+        }
+        if (this.state.city && this.state.city != undefined) {
+          address["city"] = this.state.city
+          if (fullAddress == "") {
+            fullAddress = this.state.city
+          } else {
+            fullAddress += (" " + this.state.city)
+          }
+        }
+        if (this.state.province && this.state.province != undefined) {
+          address["state"] = this.state.province
+          if (fullAddress == "") {
+            fullAddress = this.state.province
+          } else {
+            fullAddress += (" " + this.state.province)
+          }
+        }
+        if (this.state.country && this.state.country != undefined) {
+          address["country"] = this.state.country
+          if (fullAddress == "") {
+            fullAddress = this.state.country
+          } else {
+            fullAddress += (" " + this.state.country)
+          }
+        }
+        if (this.state.position) {
+          let coordinates = [this.state.position.lng, this.state.position.lat]
+          let geolocation = {}
+          geolocation["coordinates"] = coordinates
+          geolocation["type"] = "Point"
+          address["geoLocation"] = geolocation
+        }
+        let isNum = /^\d+$/.test(this.state.zip)
+        if (isNum) {
+          address["zipCode"] = this.state.zip
+        } else {
+          address["postalCode"] = this.state.zip
+        }
+        location["address"] = address
+        this.props.editUserLocation(auth.token, location).then(()=>{
+          const { api } = this.props;
+        });
       }
+    }
+
+    componentWillMount() {
+      this._getUser();
     }
 
     _updateUserEmail() {
@@ -116,6 +178,26 @@ class profileEdit extends React.Component {
       this.props.editUserBirthDay(auth.token, date).then(() => {
         const { api } = this.props;
       });
+    }
+
+    _getCurrentLocation() {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          this.setState({
+            position: {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            },
+            error: null
+          });
+          Geocoder.geocodePosition(this.state.position).then(res => {
+            this.setState({street1: res[0].streetName, street2: res[0].streetNumber, city: res[0].locality, province: res[0].adminArea, zip: res[0].postalCode, country: res[0].country})
+          })
+          .catch(err => console.log(err))
+        },
+        (error) => this.setState({ error: error.message }),
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 },
+      );
     }
   
     _setData() {
@@ -153,6 +235,32 @@ class profileEdit extends React.Component {
       let phone = event.nativeEvent.text;
       this.setState({phone})
     }
+
+    setStreet1(event) {
+      let street1 = event.nativeEvent.text;
+      this.setState({street1})
+    }
+    setStreet2(event) {
+      let street2 = event.nativeEvent.text;
+      this.setState({street2})
+    }
+    setProvince(event) {
+      let province = event.nativeEvent.text;
+      this.setState({province})
+    }
+    setCity(event) {
+      let city = event.nativeEvent.text;
+      this.setState({city})
+    }
+    setZip(event) {
+      let zip = event.nativeEvent.text;
+      this.setState({zip})
+    }
+    setCountry(event) {
+      let country = event.nativeEvent.text;
+      this.setState({country})
+    }
+
     takePhoto(){
       this.setState({sub_open: false})
       ImagePicker.openCamera({
@@ -253,7 +361,7 @@ class profileEdit extends React.Component {
                 <View style={styles.private_sub_view}>
                   <Text style={styles.private_text}>Gender</Text>
                   <TouchableOpacity  style={styles.right_arrow} onPress={() => this.setState({sub_open: true, sub_modal_state: 2})}>
-                    <Text style={styles.edit_text}>{gender.find(item=>item.value==this.state.gender).label}</Text>
+                    <Text style={styles.edit_text}>{(this.state.gender!='')?gender.find(item=>item.value==this.state.gender).label:"     "}</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={styles.private_sub_view}>
@@ -292,7 +400,7 @@ class profileEdit extends React.Component {
                 </View>
                 <View style={{flexDirection:'row',width: Dimensions.get('window').width - 60,alignSelf: 'center',height: 40,}} >
                   <Text style={styles.private_text}>Location</Text>
-                  <TouchableOpacity  style={styles.right_arrow} onPress={this.props.press}>
+                  <TouchableOpacity  style={styles.right_arrow} onPress={() => this.setState({open: true, modal_state: 6})}>
                     <Image source={require('../../img/right-arrow.png')}  style={{width: 15,height: 15}}/>
                   </TouchableOpacity>
                 </View>
@@ -330,6 +438,13 @@ class profileEdit extends React.Component {
                   </TouchableOpacity>
                   <Text style={{fontFamily: 'Montserrat', fontSize: 17,marginTop: 35,marginLeft: 20,color: 'white',textAlign: 'center'}}>Done</Text>
                 </View>
+
+                { this.state.modal_state == 6 ? (
+                    <TouchableOpacity  onPress={() => this._getCurrentLocation()}>
+                      <Image source={require('../../img/map_pin.png')}  style={{flexDirection:'row', position: 'absolute', marginTop: -40,right: 25,width: 30,height: 30}}/>
+                    </TouchableOpacity>
+                  ) : null                 
+                }
 
                 { this.state.modal_state == 0 ? (
                   <View style={{flexDirection: 'column', marginTop: 20}}>
@@ -375,7 +490,7 @@ class profileEdit extends React.Component {
                           <TextInput
                             style={styles.textinput}
                             placeholder="+1(514) 449-4366"
-                            value={this.state.phone}
+                            value={this.state.phone.toString()}
                             onChangeText={text => {
                               if(!text){
                               }
@@ -400,7 +515,82 @@ class profileEdit extends React.Component {
                                 value={this.state.work}
                                 onChange={this.setWork.bind(this)}
                               />
-                            </View>) : null
+                            </View>) : this.state.modal_state == 6 ? (
+                          <View style={{flexDirection: 'column'}}>
+                            <View style={{flexDirection: 'row', height: 100, alignItems: 'center', backgroundColor: 'white'}}>
+                              <Image source={require('../../img/address_user.png')} style={styles.address_icon}/>
+                              <View style={styles.address_notice}>
+                                <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 14}}>Your exact address, location, and{'\n'} 
+                                  + directions are visible to clients{'\n'}with a confirmed reservation</Text>
+                              </View>
+                            </View>
+                            <View style={styles.address_wrap}>
+                              <TextInput
+                                style={styles.address_input}
+                                placeholder='Street / Road Name'
+                                value={this.state.street1}
+                                onChangeText={text => {
+                                  
+                                }}
+                                onChange={this.setStreet1.bind(this)}
+                              />
+                            </View>
+                            <View style={styles.address_wrap}>
+                              <TextInput
+                                style={styles.address_input}
+                                placeholder='Apt / Suite / Building'
+                                value={this.state.street2}
+                                onChangeText={text => {
+                                  
+                                }}
+                                onChange={this.setStreet2.bind(this)}
+                              />
+                            </View>
+                            <View style={styles.address_wrap}>
+                              <TextInput
+                                style={styles.address_input}
+                                placeholder='City / Town / District'
+                                value={this.state.city}
+                                onChangeText={text => {
+                                  
+                                }}
+                                onChange={this.setCity.bind(this)}
+                              />
+                            </View>
+                            <View style={styles.address_wrap}>
+                              <TextInput
+                                style={styles.address_input}
+                                placeholder='State / Province / Country'
+                                value={this.state.province}
+                                onChangeText={text => {
+                                  
+                                }}
+                                onChange={this.setProvince.bind(this)}
+                              />
+                            </View>
+                            <View style={styles.address_wrap}>
+                              <TextInput
+                                style={styles.address_input}
+                                placeholder='Zip / Postal Code'
+                                value={this.state.zip}
+                                onChangeText={text => {
+                                  
+                                }}
+                                onChange={this.setZip.bind(this)}
+                              />
+                            </View>
+                            <View style={styles.address_wrap}>
+                              <TextInput
+                                style={styles.address_input}
+                                placeholder='Canada'
+                                value={this.state.country}
+                                onChangeText={text => {
+                                  
+                                }}
+                                onChange={this.setCountry.bind(this)}
+                              />
+                            </View>
+                          </View>):null
                 }
               </View>
             </Modal>
@@ -612,6 +802,34 @@ const styles = StyleSheet.create({
     height: 79,
     borderRadius: 2
   },
+  address_input: {
+    fontFamily: 'Montserrat',
+    width:Dimensions.get('window').width - 30,
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    fontSize: 14,
+    marginTop:10,
+    textAlign: 'left',
+    height: 37,
+    alignSelf: 'center',
+  },
+  address_wrap : {
+    width:Dimensions.get('window').width - 30,
+    borderBottomWidth: 0.8,
+    borderBottomColor:'#808080',
+    alignSelf: 'center',
+  },
+  address_icon: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginLeft: 45
+  },
+  address_notice: {
+    height: 80,
+    justifyContent: 'center',
+    marginLeft: 40
+  }
 });
 
 

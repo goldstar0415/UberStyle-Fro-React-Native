@@ -13,6 +13,7 @@ import Geocoder from 'react-native-geocoder';
 
 var {GooglePlacesAutocomplete} = require('react-native-google-places-autocomplete');
 
+import { setFilter, ActionCreators } from '../../../actions';
 
 const time_of_day = [
   {label: 'Anytime', value: 0 },
@@ -60,8 +61,6 @@ class Filters extends React.Component {
 
     }
 
-
-
     setGeolocation(data, details) {
       this.setState({
         position: {
@@ -97,7 +96,6 @@ class Filters extends React.Component {
           area: data.terms[2].value
         })
       }
-      console.log(this.state.position);
     }
 
     getGeolocation(){
@@ -150,6 +148,17 @@ class Filters extends React.Component {
       )
     }
 
+    _applyFilter() {
+      var filters = {}
+      filters["rating"] = this.state.rating_selected
+      filters["service_location"] = this.state.service_selected
+      filters["year"] = this.state.year
+      filters["month"] = this.state.month
+      filters["day"] = this.state.day
+      this.props.setFilter(filters)
+      this.setState({choose_time: false})
+      NavigationActions.pop({refresh:{filters: filters}})
+    }
 
     render() {
         return (
@@ -294,7 +303,7 @@ class Filters extends React.Component {
                 </TouchableOpacity>
               </View>
             </View>
-            <TouchableOpacity style={styles.filter_btn_view} onPress={() => {NavigationActions.pop(); this.setState({choose_time: false})}}>
+            <TouchableOpacity style={styles.filter_btn_view} onPress={() => this._applyFilter()}>
               <Text style={styles.filter_btn}>Apply Filters</Text>
             </TouchableOpacity>
 
@@ -421,9 +430,6 @@ class Filters extends React.Component {
                 </View>
               </View>
             </Modal>
-
-
-
           </View>
         );
     }
@@ -565,5 +571,19 @@ const styles = StyleSheet.create({
   },
 });
 
+const mapStateToProps = (state) => {
+  const {api} = state;
+  const { auth } = state;
+  
+  return {auth, api};
+};
 
-export default Filters;
+function mapDispatchToProps(dispatch) {
+  return {
+    setFilter: (filter) => {
+        dispatch(setFilter(filter));
+    }
+  }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Filters);

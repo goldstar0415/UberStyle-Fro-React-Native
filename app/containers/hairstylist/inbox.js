@@ -6,7 +6,8 @@ import { Actions as NavigationActions } from 'react-native-router-flux'
 import Icon from 'react-native-vector-icons/FontAwesome'
 
 import { connect } from 'react-redux'
-import {setBadge} from '../../actions';
+import {setBadge, ActionCreators} from '../../actions';
+import { bindActionCreators } from 'redux';
 
 import IconBadge from 'react-native-icon-badge';
 
@@ -17,36 +18,27 @@ class Inbox extends React.Component {
         super(props);
 
         this.state = {
-          messages: [
-            {
-              icon: require('../../img/david.jpg'),
-              name: 'S.P',
-              text: 'Lorem ipsum dolor sit amet, choro me nandri iracundia in vix, possit regione eupro. Habemus mentitum to vel.',
-              date: new Date(2017, 2, 23, 11, 5),
-              status: 0,
-              reading: false
-            },
-            {
-              icon: require('../../img/david1.jpeg'),
-              name: 'Funda',
-              text: 'Lorem ipsum dolor sit amet, choro me nandri iracundia in vix, possit regione eupro. Habemus mentitum to vel.',
-              date: new Date(2017, 2, 21, 16, 30),
-              status: 1,
-              reading: false
-            },
-            {
-              icon: require('../../img/stylist.png'),
-              name: 'Attila',
-              text: 'Lorem ipsum dolor sit amet, choro me nandri iracundia in vix, possit regione eupro. Habemus mentitum to vel.',
-              date: new Date(2016, 11, 31, 19, 1),
-              status: 2,
-              reading: true
-            }
-          ]
+          messages: []
         }
     }
 
+    _getConversation() {
+      const { authState } = this.props;
+      this.props.actions.getConversation(authState.token).then(() => {
+        const {apiState} = this.props;
+        this.setState({
+          messages: apiState.conversation
+        });
+        console.log(this.state.messages)
+      });
+    }
+
+    componentDidMount(){
+      this._getConversation()
+    }
+
     getDate(m_date, reading) {
+      m_date = new Date(m_date)
       var diffmonths
       diffmonths = (new Date().getFullYear() - m_date.getFullYear()) * 12
       diffmonths -= m_date.getMonth() + 1
@@ -79,12 +71,12 @@ class Inbox extends React.Component {
 
     messagePress(message, i){
       var change_messages = this.state.messages
-      change_messages[i].reading = true
+      change_messages[i].meta.delivered = true
       this.setState({messages:change_messages})
 
       var badge = 0
       this.state.messages.map((message, i) => {
-        if(!message.reading)badge++
+        if(!message.meta.delivered)badge++
       })
 
       this.props.setBadge(badge)
@@ -124,24 +116,26 @@ class Inbox extends React.Component {
                       <View style={styles.message_view}>
                         <View style={{flexDirection: 'column'}}>
                           <View style={{flexDirection: 'row'}}>
-                            <Image source={message.icon} style={styles.profile}/>
+                            <Image source={require('../../img/stylist.png')} style={styles.profile}/>
                             <View style={{flexDirection: 'column', marginLeft:15, width: Dimensions.get('window').width-120}}>
                               <View style={{flexDirection: 'row'}}>
-                                <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 16, marginBottom: 5}}>{message.name}</Text>
+                                <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 16, marginBottom: 5}}>{message.sender.name}</Text>
                                 {
-                                  this.getDate(message.date, message.reading),
-                                  message.reading ? <Text style={{fontFamily: 'Montserrat', position: 'absolute', bottom: 5, right: 0, fontSize: 14, color: 'gray'}}>{date}</Text> : <Text style={{position: 'absolute', bottom: 5, right: 0, fontSize: 14, color: 'green'}}>{date}</Text>
+                                  this.getDate(message.messages[0].meta.dateTime, message.meta.delivered),
+                                  message.meta.delivered ? <Text style={{fontFamily: 'Montserrat', position: 'absolute', bottom: 5, right: 0, fontSize: 14, color: 'gray'}}>{date}</Text> : <Text style={{position: 'absolute', bottom: 5, right: 0, fontSize: 14, color: 'green'}}>{date}</Text>
                                 }
                               </View>
-                              <Text style={{fontFamily: 'Montserrat', textAlign: 'left', color: '#242424',fontSize: 14}} numberOfLines= {2}>{message.text}</Text>
+                              <Text style={{fontFamily: 'Montserrat', textAlign: 'left', color: '#242424',fontSize: 14}} numberOfLines= {2}>{message.messages[0].message}</Text>
                             </View>
                           </View>
                           <View style={{flexDirection: 'row'}}>
-                            {
+                            {/*{
                               message.status == 0 ? <Text style={{fontFamily: 'Montserrat', textAlign: 'left', color: 'gray',fontSize: 14, marginLeft: 65, marginTop: 5}}>Pending</Text>
                               : message.status == 1 ? <Text style={{fontFamily: 'Montserrat', textAlign: 'left', color: 'green',fontSize: 14, marginLeft: 65, marginTop: 5}}>Confirmed</Text>
                               : message.status == 2 ? <Text style={{fontFamily: 'Montserrat', textAlign: 'left', color: 'red',fontSize: 14, marginLeft: 65, marginTop: 5}}>Not Possible</Text> : null
-                            }
+                            }*/}
+                            <Text style={{fontFamily: 'Montserrat', textAlign: 'left', color: 'green',fontSize: 14, marginLeft: 65, marginTop: 5}}>Confirmed</Text>
+
                             <Text style={{fontFamily: 'Montserrat', textAlign: 'left', color: 'gray',fontSize: 14, marginTop: 5}}> •  Goddess Locs</Text>
                           </View>
                         </View>
@@ -241,17 +235,22 @@ const styles = StyleSheet.create({
 });
 
 const mapStateToProps = (state) => {
-    const props = {
-        badge: state.message.badge,
-    };
-    return props;
+  const { auth } = state;
+  const { api } = state;
+  const props = {
+      badge: state.message.badge,
+      authState: auth,
+      apiState: api
+  };
+  return props;
 };
 
 const mapDispatchToProps = (dispatch) => {
     return {
         setBadge: (badge) => {
             dispatch(setBadge(badge));
-        }
+        },
+        actions: bindActionCreators(ActionCreators, dispatch),
     }
 }
 

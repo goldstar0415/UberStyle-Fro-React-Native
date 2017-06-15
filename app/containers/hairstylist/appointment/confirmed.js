@@ -4,6 +4,8 @@ import Button from 'react-native-button';
 import { Actions as NavigationActions } from 'react-native-router-flux'
 
 import { connect } from 'react-redux'
+import { bindActionCreators } from 'redux';
+import {ActionCreators} from '../../../actions';
 import Modal from 'react-native-modalbox';
 
 import MapView from 'react-native-maps';
@@ -22,6 +24,9 @@ const cancel_options = [
   {label: "Deposit missing", value: 3 },
   {label: 'Other', value: 4 }
 ]
+
+var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+var dayNames = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
@@ -59,6 +64,32 @@ class Confirmed extends React.Component {
       this.getGeolocation()
     }
 
+    getDates(date){
+      date = new Date(date)
+      var day = dayNames[date.getDay()];
+      var month = monthNames[date.getMonth()];
+      var dates = date.getDate();
+      var year = date.getFullYear();
+
+      var hours = date.getHours()
+      hours = (hours+24)%24
+      var mid='AM'
+      if(hours==0){
+        hours=12
+      }else if(hours>12){
+        hours=hours%12
+        mid='PM'
+      }
+      if(date.getMinutes() < 10)var minutes = '0' + date.getMinutes()
+      else var minutes = date.getMinutes()
+
+      times = hours + ':' + minutes + ' ' + mid
+
+      days = day + ', ' + month + ' ' + dates
+
+      return times
+    }
+
     getGeolocation(){
       Geocoder.geocodePosition({lat: this.state.appointments[0].location.latitude, lng: this.state.appointments[0].location.longitude}).then(res => {
         this.setState({location: res[0].formattedAddress})
@@ -93,6 +124,11 @@ class Confirmed extends React.Component {
       )
     }
 
+    _cancelAppointment(){
+      this.props.cancelAppointment(this.props.auth.token, this.props.data.id, cancel_options[this.state.cancel_state].label, this.state.description).then(()=>{
+        this.setState({cancel_open: true})
+      });
+    }
 
     render() {
         return (
@@ -109,15 +145,15 @@ class Confirmed extends React.Component {
                     <Text style={{fontFamily: 'Montserrat', fontSize: 12}}>EDIT</Text>
                   </TouchableOpacity>
                 </View>
-                <Text style={{fontFamily: 'Montserrat', fontSize: 26, marginTop: 20}}>Crochet Braids</Text>
-                <Text style={{fontFamily: 'Montserrat', fontSize: 14}}>{this.state.appointments[0].available}{'\n'}Pending</Text>
+                <Text style={{fontFamily: 'Montserrat', fontSize: 26, marginTop: 20}}>{this.props.data.type}</Text>
+                <Text style={{fontFamily: 'Montserrat', fontSize: 14}}>{this.getDates(this.props.data.available) + ' ・ ' + this.props.data.ability}{'\n'}Pending</Text>
               </View>
 
                 <View style={{flexDirection: 'row', width: width - 40, height: 80, alignItems: 'center', borderBottomWidth: 0.2}}>
-                  <Image source={this.state.appointments[0].icon} style={styles.profile}/>
+                  <Image source={this.props.data.icon} style={styles.profile}/>
                   <View style={styles.review_view}>
-                    <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 14}}>{this.state.appointments[0].name}</Text>
-                    <Image source={stars[this.state.appointments[0].star]} style={styles.rating_star}/>
+                    <Text style={{fontFamily: 'Montserrat', textAlign: 'left', fontSize: 14}}>{this.props.data.name}</Text>
+                    <Image source={stars[this.props.data.star]} style={styles.rating_star}/>
                   </View>
                 </View>
 
@@ -129,7 +165,7 @@ class Confirmed extends React.Component {
                     <Text style={styles.circle_text}>Reschedule</Text>
                   </View>
                   <View style={styles.circle_view}>
-                    <TouchableOpacity onPress={() => this.setState({cancel_open: true})}>
+                    <TouchableOpacity onPress={() => this._cancelAppointment()}>
                       <Image source={require('../../../img/ic_cancel.png')}  style={{width: 60,height: 60}}/>
                     </TouchableOpacity>
                     <Text style={styles.circle_text}>Cancel</Text>
@@ -300,16 +336,13 @@ const styles = StyleSheet.create({
 
 
 const mapStateToProps = (state) => {
-    const props = {
-
-    };
-    return props;
+    const {api} = state
+    const {auth} = state
+    return {api, auth}
 };
 
 const mapDispatchToProps = (dispatch) => {
-    return {
-
-    }
+    return bindActionCreators(ActionCreators, dispatch);
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Confirmed)
